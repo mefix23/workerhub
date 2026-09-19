@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WORKERHUB — найди человека для своей задачи</title>
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+<div id="nav-root"></div>
+
+<section class="hero hero-animate">
+  <div class="hero-bg">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+  </div>
+  <div class="container">
+    <h1>Найди человека<br />для своей задачи.</h1>
+    <p>WORKERHUB — минималистичный каталог исполнителей: GP, deco, host, playtest и music makers. Найди нужного человека и договорись напрямую.</p>
+    <div class="hero-actions">
+      <a href="/catalog.html" class="btn btn-primary">Смотреть каталог</a>
+      <a href="/create.html" class="btn">Создать анкету</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <form id="hero-search-form" class="search-bar">
+      <input type="text" id="hero-search-input" placeholder="Найти исполнителя: имя, роль, тег…" />
+      <button type="submit" class="btn btn-primary">Искать</button>
+    </form>
+
+    <div class="section-head">
+      <div>
+        <h2>Недавно добавленные</h2>
+        <p>Свежие анкеты исполнителей на платформе</p>
+      </div>
+      <a href="/catalog.html" class="btn btn-sm">Весь каталог →</a>
+    </div>
+
+    <div class="grid" id="featured-grid">
+      <div class="loading">Загрузка…</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">WORKERHUB · MVP</div>
+</footer>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/cards.js"></script>
+<script src="/js/home.js"></script>
+<script src="/js/ui.js"></script>
+</body>
+</html>
