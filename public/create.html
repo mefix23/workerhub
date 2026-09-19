@@ -51,8 +51,8 @@
         </div>
 
         <div class="field">
-          <label>Услуги <span class="hint">через запятую</span></label>
-          <input type="text" name="services" placeholder="Логотип, Айдентика, Упаковка" />
+          <label>Название <span class="hint">через запятую</span></label>
+          <input type="text" name="services" placeholder="название анкеты, которое будет видно покупателям" />
         </div>
 
         <div class="field-row">
@@ -67,18 +67,13 @@
         </div>
 
         <div class="field">
-          <label>Аватар <span class="hint">ссылка на изображение, необязательно</span></label>
-          <input type="url" name="avatarUrl" maxlength="500" placeholder="https://…" />
+          <label>Аватар <span class="hint">PNG или JPG, необязательно</span></label>
+          <input type="file" name="avatarFile" accept="image/png,image/jpeg,image/webp" />
         </div>
 
         <div class="field">
           <label>Теги <span class="hint">через запятую</span></label>
           <input type="text" name="tags" placeholder="дизайн, логотип, брендинг" />
-        </div>
-
-        <div class="field">
-          <label>Портфолио <span class="hint">ссылки через запятую</span></label>
-          <input type="text" name="portfolio" placeholder="https://…, https://…" />
         </div>
 
         <button type="submit" class="btn btn-primary btn-block">Опубликовать анкету</button>
