@@ -62,18 +62,13 @@
           </div>
           <div class="field">
             <label>Контакт</label>
-            <input type="text" name="contact" required maxlength="200" placeholder="@telegram или email" />
+            <input type="text" name="contact" required maxlength="200" placeholder="Telegram // discord" />
           </div>
         </div>
 
         <div class="field">
-          <label>Аватар <span class="hint">ссылка на картинку, необязательно</span></label>
-          <input type="url" name="avatarUrl" placeholder="https://example.com/avatar.png" />
-        </div>
-
-        <div class="field">
-          <label>Портфолио <span class="hint">ссылки через запятую, необязательно</span></label>
-          <input type="text" name="portfolio" placeholder="https://..., https://..." />
+          <label>Аватар <span class="hint">выбери картинку, необязательно</span></label>
+          <input type="file" name="avatarFile" accept="image/png,image/jpeg,image/webp" />
         </div>
 
         <div class="field">
