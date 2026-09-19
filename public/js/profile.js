@@ -87,7 +87,31 @@ function renderOrderArea(profile, user, isOwner) {
   if (!area) return;
 
   if (isOwner) {
-    area.innerHTML = `<p class="text-muted" style="font-size:13px;">Это твоя анкета.</p>`;
+    area.innerHTML = `
+      <p class="text-muted" style="font-size:13px;">Это твоя анкета.</p>
+      <button class="btn btn-block" id="delete-btn" style="margin-top:16px;">Удалить анкету</button>
+      <div id="delete-msg" class="form-msg"></div>
+    `;
+
+    document.getElementById('delete-btn').addEventListener('click', async () => {
+      if (!window.confirm('Удалить анкету навсегда? Это действие нельзя отменить.')) return;
+
+      const btn = document.getElementById('delete-btn');
+      const msg = document.getElementById('delete-msg');
+      btn.disabled = true;
+      try {
+        await api(`/profiles/${profile.id}`, { method: 'DELETE', auth: true });
+        msg.className = 'form-msg success';
+        msg.textContent = 'Анкета удалена.';
+        setTimeout(() => {
+          window.location.href = '/catalog.html';
+        }, 600);
+      } catch (err) {
+        msg.className = 'form-msg error';
+        msg.textContent = err.message;
+        btn.disabled = false;
+      }
+    });
     return;
   }
 
