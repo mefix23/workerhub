@@ -105,6 +105,26 @@ function update(req, res, next) {
   }
 }
 
+function remove(req, res, next) {
+  try {
+    const existing = Profile.findById(req.params.id);
+    if (!existing || existing.user_id !== req.user.id) {
+      return res.status(404).json({ error: 'Profile not found.' });
+    }
+    // Deleting a profile also deletes its orders (ON DELETE CASCADE), so we
+    // refuse while money may still be held in escrow for this profile.
+    if (Profile.hasActiveOrders(existing.id)) {
+      return res.status(409).json({
+        error: 'Нельзя удалить анкету: по ней есть активные заказы (оплаченные или в работе). Сначала завершите или отмените их.',
+      });
+    }
+    Profile.remove(existing.id);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 function myProfiles(req, res, next) {
   try {
     const profiles = Profile.listByUser(req.user.id);
@@ -114,4 +134,4 @@ function myProfiles(req, res, next) {
   }
 }
 
-module.exports = { list, getById, create, update, myProfiles };
+module.exports = { list, getById, create, update, remove, myProfiles };
