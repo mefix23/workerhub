@@ -67,8 +67,13 @@
         </div>
 
         <div class="field">
-          <label>Аватар <span class="hint">PNG или JPG, необязательно</span></label>
-          <input type="file" name="avatarFile" accept="image/png,image/jpeg,image/webp" />
+          <label>Аватар <span class="hint">ссылка на картинку, необязательно</span></label>
+          <input type="url" name="avatarUrl" placeholder="https://example.com/avatar.png" />
+        </div>
+
+        <div class="field">
+          <label>Портфолио <span class="hint">ссылки через запятую, необязательно</span></label>
+          <input type="text" name="portfolio" placeholder="https://..., https://..." />
         </div>
 
         <div class="field">
