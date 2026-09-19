@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Регистрация — WORKERHUB</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div id="nav-root"></div>
+
+<section class="section">
+  <div class="container">
+    <form id="register-form" class="form-card">
+      <h2 class="mt-0">Регистрация</h2>
+      <div id="auth-msg" class="form-msg"></div>
+
+      <div class="field">
+        <label>Имя пользователя</label>
+        <input type="text" name="username" required minlength="3" maxlength="40" placeholder="mefix" />
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label>Пароль <span class="hint">минимум 8 символов</span></label>
+        <input type="password" name="password" required minlength="8" placeholder="••••••••" />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">Создать аккаунт</button>
+      <p class="text-muted center" style="margin-bottom:0;font-size:13px;">
+        Уже есть аккаунт? <a href="/login.html" style="font-weight:600;">Войти</a>
+      </p>
+    </form>
+  </div>
+</section>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/auth.js"></script>
+</body>
+</html>
