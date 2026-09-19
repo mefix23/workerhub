@@ -28,6 +28,16 @@ function isPositiveNumber(v) {
   return Number.isFinite(n) && n >= 0;
 }
 
+// Avatar: either a small image encoded as a data URL (uploaded from the
+// create form and shrunk in the browser) or a plain http(s) link.
+const MAX_AVATAR = 150000;
+function isValidAvatar(v) {
+  if (v === undefined || v === null || v === '') return true;
+  if (typeof v !== 'string' || v.length > MAX_AVATAR) return false;
+  if (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) return true;
+  return v.length <= 500 && /^https?:\/\/\S+$/.test(v);
+}
+
 function isStringArray(v, max = 30, itemMax = 100) {
   if (v === undefined || v === null) return true;
   return (
@@ -87,8 +97,8 @@ function validateProfileCreate(req, res, next) {
   if (!isPositiveNumber(b.price)) {
     return res.status(400).json({ error: 'Price must be a non-negative number.' });
   }
-  if (!isOptionalString(b.avatarUrl, 500)) {
-    return res.status(400).json({ error: 'Avatar URL is too long.' });
+  if (!isValidAvatar(b.avatarUrl)) {
+    return res.status(400).json({ error: 'Некорректный аватар: нужна картинка PNG, JPG или WebP (не слишком большая).' });
   }
   if (!isStringArray(b.services)) {
     return res.status(400).json({ error: 'Services must be a list of short strings.' });
