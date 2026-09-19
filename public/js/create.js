@@ -1,3 +1,8 @@
+function getVal(fd, key) {
+  const v = fd.get(key);
+  return typeof v === 'string' ? v.trim() : '';
+}
+
 function splitList(value) {
   return value
     .split(',')
@@ -61,15 +66,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fd = new FormData(form);
     const body = {
-      name: fd.get('name').trim(),
-      avatarUrl: fd.get('avatarUrl').trim() || undefined,
+      name: getVal(fd, 'name'),
+      avatarUrl: getVal(fd, 'avatarUrl') || undefined,
       roles: selectedRoles,
-      description: fd.get('description').trim(),
-      services: splitList(fd.get('services') || ''),
-      price: fd.get('price'),
-      contact: fd.get('contact').trim(),
-      tags: splitList(fd.get('tags') || ''),
-      portfolio: splitList(fd.get('portfolio') || ''),
+      description: getVal(fd, 'description'),
+      services: splitList(getVal(fd, 'services')),
+      price: getVal(fd, 'price'),
+      contact: getVal(fd, 'contact'),
+      tags: splitList(getVal(fd, 'tags')),
+      portfolio: splitList(getVal(fd, 'portfolio')),
     };
 
     const submitBtn = form.querySelector('button[type="submit"]');
