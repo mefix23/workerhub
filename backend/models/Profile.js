@@ -126,6 +126,19 @@ const Profile = {
     return rows.map(serializeRow);
   },
 
+  // True if any order for this profile is paid or in progress (money may be
+  // held in escrow), in which case the profile must not be deleted.
+  hasActiveOrders(id) {
+    const row = db
+      .prepare(`SELECT COUNT(*) AS n FROM orders WHERE profile_id = ? AND status IN ('paid', 'in_progress')`)
+      .get(id);
+    return row.n > 0;
+  },
+
+  remove(id) {
+    return db.prepare('DELETE FROM profiles WHERE id = ?').run(id).changes > 0;
+  },
+
   setStatus(id, status) {
     db.prepare(`UPDATE profiles SET status = ?, updated_at = datetime('now') WHERE id = ?`).run(
       status,
