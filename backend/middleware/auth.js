@@ -1,6 +1,16 @@
 const { verifyToken } = require('../utils/jwt');
 const User = require('../models/User');
 
+// A token only names the user by numeric id. If the database is ever reset
+// (e.g. on free hosting with a temporary disk), ids start again from 1 and an
+// old token would suddenly open somebody else's account. So a token is only
+// accepted if it was issued after the account it points to was created.
+function tokenIsForThisAccount(payload, user) {
+  const created = Date.parse(String(user.created_at).replace(' ', 'T') + 'Z');
+  if (!Number.isFinite(created) || !payload || typeof payload.iat !== 'number') return true;
+  return payload.iat >= Math.floor(created / 1000);
+}
+
 // Requires a valid Bearer token. Rejects blocked users.
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
@@ -14,7 +24,7 @@ function requireAuth(req, res, next) {
     const payload = verifyToken(token);
     const user = User.findById(payload.sub);
 
-    if (!user) {
+    if (!user || !tokenIsForThisAccount(payload, user)) {
       return res.status(401).json({ error: 'Invalid session.' });
     }
     if (user.is_blocked) {
@@ -37,7 +47,7 @@ function optionalAuth(req, res, next) {
     try {
       const payload = verifyToken(token);
       const user = User.findById(payload.sub);
-      if (user && !user.is_blocked) req.user = user;
+      if (user && !user.is_blocked && tokenIsForThisAccount(payload, user)) req.user = user;
     } catch (err) {
       // Ignore invalid tokens for optional auth.
     }
