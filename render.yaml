@@ -17,5 +17,7 @@ services:
         value: "10"
       - key: WITHDRAWAL_HOLD_DAYS
         value: "3"
+      - key: ADMIN_SETUP_KEY
+        generateValue: true
       - key: SEED_DEMO_DATA
         value: "true"
