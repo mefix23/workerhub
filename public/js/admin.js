@@ -4,12 +4,34 @@
   let me = null;
   let users = [];
   let profiles = [];
-  let tab = 'users';
+  let queue = [];
+  let tab = 'queue';
   let search = '';
   let profileFilter = 'all';
 
   const isAdmin = () => !!me && me.role === 'admin';
   const staff = (u) => !!u && (u.role === 'admin' || u.is_moderator === 1 || u.is_moderator === true);
+  const MAX_WARN = 3;
+  const TIERS = [
+    ['low', 'Низкий'],
+    ['below_avg', 'Ниже среднего'],
+    ['avg', 'Средний'],
+    ['above_avg', 'Выше среднего'],
+    ['high', 'Высокий'],
+    ['excellent', 'Отличный'],
+  ];
+
+  // Skill tier picker used in the moderation queue and the profiles list.
+  function tierSelect(p) {
+    const opts = ['<option value="">— тир не выбран —</option>']
+      .concat(
+        TIERS.map(
+          ([slug, label]) => `<option value="${slug}"${p.tier === slug ? ' selected' : ''}>${label}</option>`
+        )
+      )
+      .join('');
+    return `<select data-tier="${p.id}" style="padding:8px 10px;border-radius:var(--radius-md);border:1px solid var(--border-strong);background:var(--bg-input);color:inherit;color-scheme:dark;max-width:100%;">${opts}</select>`;
+  }
 
   function toast(message, type) {
     if (typeof window.showToast === 'function') window.showToast(message, type || 'success');
@@ -69,22 +91,30 @@
     const out = [];
     if (u.role === 'admin') out.push('<span class="adm-badge admin">Админ</span>');
     if (u.is_moderator) out.push('<span class="adm-badge mod">Модератор</span>');
+    if (u.warn_count) out.push(`<span class="adm-badge bad">WARN ${u.warn_count}/${MAX_WARN}</span>`);
     if (u.is_blocked) out.push('<span class="adm-badge bad">Заблокирован</span>');
     return out.join('');
   }
 
   function userRow(u) {
     const self = u.id === me.id;
-    const canBlock =
-      !self && u.role !== 'admin' && (isAdmin() || !u.is_moderator);
+    const canPunish = !self && u.role !== 'admin' && (isAdmin() || !u.is_moderator);
     const canToggleMod = isAdmin() && u.role !== 'admin';
 
-    const actions = [];
-    if (canBlock) {
+    const actions = [`<a class="btn btn-sm btn-ghost" href="/user.html?id=${u.id}">Профиль</a>`];
+    if (canPunish) {
+      actions.push(
+        `<button class="btn btn-sm btn-ghost adm-danger" data-action="warn" data-id="${u.id}">Выдать WARN</button>`
+      );
       actions.push(
         u.is_blocked
           ? `<button class="btn btn-sm btn-ghost" data-action="block" data-id="${u.id}" data-value="0">Разблокировать</button>`
           : `<button class="btn btn-sm btn-ghost adm-danger" data-action="block" data-id="${u.id}" data-value="1">Заблокировать</button>`
+      );
+    }
+    if (isAdmin() && u.warn_count > 0 && u.role !== 'admin') {
+      actions.push(
+        `<button class="btn btn-sm btn-ghost" data-action="unwarn" data-id="${u.id}">Снять последний WARN</button>`
       );
     }
     if (canToggleMod) {
@@ -110,31 +140,88 @@
           <div class="adm-title">${escapeHtml(u.username)}${self ? ' <span class="text-muted">(это ты)</span>' : ''} ${roleBadges(u)}</div>
           <div class="adm-sub">${sub}</div>
         </div>
-        ${actions.length ? `<div class="adm-actions">${actions.join('')}</div>` : ''}
+        <div class="adm-actions">${actions.join('')}</div>
       </div>
     `;
   }
 
+  function queueRow(p) {
+    const avatar = p.avatar_url
+      ? `<img src="${escapeHtml(p.avatar_url)}" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex:none;" />`
+      : `<div class="avatar" style="width:56px;height:56px;flex:none;">${escapeHtml(initials(p.name))}</div>`;
+    const tags = (p.tags || []).map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+    const mediaHtml = (p.media || [])
+      .map((m) =>
+        m.type === 'image'
+          ? `<img src="${escapeHtml(m.url)}" alt="" style="width:88px;height:88px;object-fit:cover;border-radius:8px;" />`
+          : `<a class="btn btn-sm btn-ghost" href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer">▶ видео</a>`
+      )
+      .join('');
+
+    return `
+      <div class="adm-row">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          ${avatar}
+          <div style="min-width:0;">
+            <div class="adm-title">${escapeHtml(p.name)} <span class="adm-badge">${escapeHtml(p.role_title || '')}</span></div>
+            <div class="adm-sub">Название: ${escapeHtml(p.title || '—')} · Цена: ${escapeHtml(formatPrice(p.price_cents, p.currency))}</div>
+            <div class="adm-sub">Контакт: ${escapeHtml(p.contact)}</div>
+            <div class="adm-sub">
+              Автор: <a href="/user.html?id=${p.user_id}">${escapeHtml(p.username)}</a>
+              ${p.warn_count ? ` <span class="adm-badge bad">WARN ${p.warn_count}/${MAX_WARN}</span>` : ''}
+              ${p.is_blocked ? ' <span class="adm-badge bad">Заблокирован</span>' : ''}
+            </div>
+          </div>
+        </div>
+        ${p.description ? `<div class="adm-desc" style="white-space:pre-wrap;"><b>Описание:</b> ${escapeHtml(p.description)}</div>` : ''}
+        <div class="adm-desc" style="white-space:pre-wrap;"><b>Услуги:</b> ${escapeHtml(p.services_text || '—')}</div>
+        ${mediaHtml ? `<div style="display:flex;gap:8px;flex-wrap:wrap;">${mediaHtml}</div>` : ''}
+        ${tags ? `<div class="tag-row">${tags}</div>` : ''}
+        <div class="adm-actions" style="align-items:center;">
+          ${tierSelect(p)}
+          <button class="btn btn-sm btn-primary" data-action="pstatus" data-id="${p.id}" data-value="approved">Выложить</button>
+          <button class="btn btn-sm btn-ghost adm-danger" data-action="pstatus" data-id="${p.id}" data-value="rejected">Отклонить</button>
+          <a class="btn btn-sm btn-ghost" href="/profile.html?id=${p.id}">Открыть</a>
+        </div>
+      </div>
+    `;
+  }
+
+  function profileStatus(p) {
+    if (p.status === 'pending') return ['На модерации', ''];
+    if (p.status === 'rejected') return ['Отклонена', 'bad'];
+    return [p.is_active ? 'Опубликована' : 'Опубликована · REQ—OFF', 'ok'];
+  }
+
   function profileRow(p) {
-    const hidden = p.status !== 'approved';
-    const actions = [
-      `<a class="btn btn-sm btn-ghost" href="/profile.html?id=${p.id}">Открыть</a>`,
-      hidden
-        ? `<button class="btn btn-sm btn-ghost" data-action="pstatus" data-id="${p.id}" data-value="approved">Показать в каталоге</button>`
-        : `<button class="btn btn-sm btn-ghost" data-action="pstatus" data-id="${p.id}" data-value="rejected">Скрыть</button>`,
-      `<button class="btn btn-sm btn-ghost adm-danger" data-action="pdelete" data-id="${p.id}">Удалить</button>`,
-    ];
+    const [label, cls] = profileStatus(p);
+    const actions = [`<a class="btn btn-sm btn-ghost" href="/profile.html?id=${p.id}">Открыть</a>`];
+    if (p.status !== 'approved') {
+      actions.push(
+        `<button class="btn btn-sm btn-ghost" data-action="pstatus" data-id="${p.id}" data-value="approved">Выложить</button>`
+      );
+    }
+    if (p.status !== 'rejected') {
+      actions.push(
+        `<button class="btn btn-sm btn-ghost" data-action="pstatus" data-id="${p.id}" data-value="rejected">${p.status === 'pending' ? 'Отклонить' : 'Скрыть'}</button>`
+      );
+    }
+    actions.push(
+      `<button class="btn btn-sm btn-ghost adm-danger" data-action="pdelete" data-id="${p.id}">Удалить</button>`
+    );
+    actions.push(tierSelect(p));
 
     return `
       <div class="adm-row">
         <div>
           <div class="adm-title">
             ${escapeHtml(p.name)}
-            <span class="adm-badge ${hidden ? 'bad' : 'ok'}">${hidden ? 'Скрыта' : 'Опубликована'}</span>
+            <span class="adm-badge ${cls}">${label}</span>
           </div>
           <div class="adm-sub">
-            ${escapeHtml(p.role_title || '')} · автор: ${escapeHtml(p.username)}${p.is_blocked ? ' (заблокирован)' : ''}
+            ${p.title ? escapeHtml(p.title) + ' · ' : ''}${escapeHtml(p.role_title || '')} · автор: ${escapeHtml(p.username)}${p.is_blocked ? ' (заблокирован)' : ''}
           </div>
+          ${p.reject_reason ? `<div class="adm-sub">Причина отказа: ${escapeHtml(p.reject_reason)}</div>` : ''}
           <div class="adm-desc">${escapeHtml(p.description || '')}</div>
         </div>
         <div class="adm-actions">${actions.join('')}</div>
@@ -147,10 +234,15 @@
     if (!box) return;
     const q = search.trim().toLowerCase();
 
-    if (tab === 'users') {
-      const rows = users.filter((u) =>
-        !q || `${u.username} ${u.email || ''}`.toLowerCase().includes(q)
+    if (tab === 'queue') {
+      const rows = queue.filter(
+        (p) => !q || `${p.name} ${p.title || ''} ${p.username}`.toLowerCase().includes(q)
       );
+      box.innerHTML = rows.length
+        ? rows.map(queueRow).join('')
+        : '<div class="empty-state">Новых анкет на проверке нет 🎉</div>';
+    } else if (tab === 'users') {
+      const rows = users.filter((u) => !q || `${u.username} ${u.email || ''}`.toLowerCase().includes(q));
       box.innerHTML = rows.length
         ? rows.map(userRow).join('')
         : '<div class="empty-state">Никого не найдено.</div>';
@@ -158,7 +250,7 @@
       const rows = profiles.filter((p) => {
         if (profileFilter === 'approved' && p.status !== 'approved') return false;
         if (profileFilter === 'hidden' && p.status === 'approved') return false;
-        return !q || `${p.name} ${p.username} ${p.role_title || ''}`.toLowerCase().includes(q);
+        return !q || `${p.name} ${p.title || ''} ${p.username} ${p.role_title || ''}`.toLowerCase().includes(q);
       });
       box.innerHTML = rows.length
         ? rows.map(profileRow).join('')
@@ -175,7 +267,7 @@
     }
     const chip = (value, label) =>
       `<button class="adm-chip ${profileFilter === value ? 'active' : ''}" data-filter="${value}">${label}</button>`;
-    box.innerHTML = chip('all', 'Все') + chip('approved', 'Опубликованные') + chip('hidden', 'Скрытые');
+    box.innerHTML = chip('all', 'Все') + chip('approved', 'Опубликованные') + chip('hidden', 'Не в каталоге');
   }
 
   function renderTabs() {
@@ -184,7 +276,9 @@
     const chip = (value, label) =>
       `<button class="adm-chip ${tab === value ? 'active' : ''}" data-tab="${value}">${label}</button>`;
     box.innerHTML =
-      chip('users', `Аккаунты (${users.length})`) + chip('profiles', `Анкеты (${profiles.length})`);
+      chip('queue', `На модерации (${queue.length})`) +
+      chip('users', `Аккаунты (${users.length})`) +
+      chip('profiles', `Анкеты (${profiles.length})`);
   }
 
   function renderShell() {
@@ -208,6 +302,7 @@
     });
 
     root.addEventListener('click', onClick);
+    root.addEventListener('change', onChange);
     refreshView();
   }
 
@@ -218,12 +313,14 @@
   }
 
   async function loadAll() {
-    const [u, p] = await Promise.all([
+    const [u, p, qu] = await Promise.all([
       api('/users', { auth: true }),
       api('/mod/profiles', { auth: true }),
+      api('/mod/queue', { auth: true }),
     ]);
     users = u.users;
     profiles = p.profiles;
+    queue = qu.profiles;
   }
 
   async function act(fn, okMessage) {
@@ -235,6 +332,17 @@
     } catch (err) {
       toast(err.message, 'error');
     }
+  }
+
+  function onChange(e) {
+    const sel = e.target.closest('select[data-tier]');
+    if (!sel) return;
+    const id = parseInt(sel.getAttribute('data-tier'), 10);
+    const tier = sel.value || null;
+    act(
+      () => api(`/mod/profiles/${id}/tier`, { method: 'PATCH', auth: true, body: { tier } }),
+      tier ? 'Тир сохранён' : 'Тир снят'
+    );
   }
 
   function onClick(e) {
@@ -256,14 +364,29 @@
     const action = btn.getAttribute('data-action');
     const id = parseInt(btn.getAttribute('data-id'), 10);
     const value = btn.getAttribute('data-value');
+    const targetUser = users.find((u) => u.id === id);
 
     if (action === 'block') {
       const block = value === '1';
-      const target = users.find((u) => u.id === id);
-      if (block && !window.confirm(`Заблокировать аккаунт ${target ? target.username : ''}?`)) return;
+      if (block && !window.confirm(`Заблокировать аккаунт ${targetUser ? targetUser.username : ''}?`)) return;
       act(
         () => api(`/users/${id}/block`, { method: 'PATCH', auth: true, body: { blocked: block } }),
         block ? 'Аккаунт заблокирован' : 'Аккаунт разблокирован'
+      );
+    } else if (action === 'warn') {
+      const reason = window.prompt(
+        `Причина предупреждения для ${targetUser ? targetUser.username : 'аккаунта'} (её увидит пользователь):`
+      );
+      if (reason === null) return;
+      act(
+        () => api(`/users/${id}/warn`, { method: 'POST', auth: true, body: { reason } }),
+        'Предупреждение выдано'
+      );
+    } else if (action === 'unwarn') {
+      if (!window.confirm('Снять последнее предупреждение?')) return;
+      act(
+        () => api(`/users/${id}/warnings/last`, { method: 'DELETE', auth: true }),
+        'Предупреждение снято'
       );
     } else if (action === 'mod') {
       const on = value === '1';
@@ -272,9 +395,15 @@
         on ? 'Модератор назначен' : 'Модератор снят'
       );
     } else if (action === 'pstatus') {
+      let reason = '';
+      if (value === 'rejected') {
+        const r = window.prompt('Причина отказа (её увидит автор). Можно оставить пустым:');
+        if (r === null) return;
+        reason = r;
+      }
       act(
-        () => api(`/mod/profiles/${id}/status`, { method: 'PATCH', auth: true, body: { status: value } }),
-        value === 'approved' ? 'Анкета снова в каталоге' : 'Анкета скрыта'
+        () => api(`/mod/profiles/${id}/status`, { method: 'PATCH', auth: true, body: { status: value, reason } }),
+        value === 'approved' ? 'Анкета выложена в каталог' : 'Анкета отклонена'
       );
     } else if (action === 'pdelete') {
       if (!window.confirm('Удалить анкету навсегда? Это действие нельзя отменить.')) return;

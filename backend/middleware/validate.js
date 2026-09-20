@@ -38,6 +38,21 @@ function isValidAvatar(v) {
   return v.length <= 500 && /^https?:\/\/\S+$/.test(v);
 }
 
+// Works gallery: 1-5 items, each a small photo (data URL) or a video link.
+function isValidMedia(list) {
+  if (!Array.isArray(list) || list.length < 1 || list.length > 5) return false;
+  return list.every((m) => {
+    if (!m || typeof m.url !== 'string') return false;
+    if (m.type === 'image') {
+      return m.url.length <= 320000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(m.url);
+    }
+    if (m.type === 'video') {
+      return m.url.length <= 300 && /^https?:\/\/\S+$/.test(m.url);
+    }
+    return false;
+  });
+}
+
 function isStringArray(v, max = 30, itemMax = 100) {
   if (v === undefined || v === null) return true;
   return (
@@ -78,24 +93,49 @@ function validateLogin(req, res, next) {
   next();
 }
 
+function trimmedLength(v) {
+  return typeof v === 'string' ? v.trim().length : 0;
+}
+
 function validateProfileCreate(req, res, next) {
   const b = req.body || {};
-  if (!isNonEmptyString(b.name, 80)) {
-    return res.status(400).json({ error: 'Name is required (max 80 characters).' });
+  const bad = (error) => res.status(400).json({ error });
+
+  const nameLen = trimmedLength(b.name);
+  if (nameLen < 2 || nameLen > 80) {
+    return bad('Имя / ник: от 2 до 80 символов.');
+  }
+  const titleLen = trimmedLength(b.title);
+  if (titleLen < 3 || titleLen > 80) {
+    return bad('Название анкеты: от 3 до 80 символов.');
   }
   if (!isRoleArray(b.roles)) {
-    return res.status(400).json({
-      error: `Select at least one role. Valid roles: ${ROLE_SLUGS.join(', ')}.`,
-    });
+    return bad('Выбери хотя бы одну роль.');
   }
-  if (!isNonEmptyString(b.description, MAX_LONG)) {
-    return res.status(400).json({ error: `Description is required (max ${MAX_LONG} characters).` });
+  const services = typeof b.servicesText === 'string' ? b.servicesText.trim() : '';
+  if (services.length < 30 || services.length > MAX_LONG) {
+    return bad(`Услуги: опиши подробнее, от 30 до ${MAX_LONG} символов.`);
   }
-  if (!isNonEmptyString(b.contact, 200)) {
-    return res.status(400).json({ error: 'Contact info is required.' });
+  if (new Set(services.toLowerCase().replace(/\s/g, '')).size < 6) {
+    return bad('Услуги выглядят как случайный набор символов. Напиши нормально.');
   }
-  if (!isPositiveNumber(b.price)) {
-    return res.status(400).json({ error: 'Price must be a non-negative number.' });
+  // "Описание" is optional.
+  if (
+    b.description !== undefined &&
+    b.description !== null &&
+    (typeof b.description !== 'string' || b.description.length > MAX_LONG)
+  ) {
+    return bad('Описание слишком длинное.');
+  }
+  if (!isValidMedia(b.media)) {
+    return bad('Добавь от 1 до 5 фото или ссылок на видео с твоими работами.');
+  }
+  const contactLen = trimmedLength(b.contact);
+  if (contactLen < 3 || contactLen > 200) {
+    return bad('Укажи контакт (Telegram // discord), минимум 3 символа.');
+  }
+  if (b.price === undefined || b.price === null || String(b.price).trim() === '' || !isPositiveNumber(b.price)) {
+    return bad('Укажи цену: число, 0 или больше.');
   }
   if (!isValidAvatar(b.avatarUrl)) {
     return res.status(400).json({ error: 'Некорректный аватар: нужна картинка PNG, JPG или WebP (не слишком большая).' });

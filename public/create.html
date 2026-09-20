@@ -27,8 +27,8 @@
     <div id="create-form-wrap" style="display:none;">
       <div class="section-head">
         <div>
-          <h2>Создать анкету</h2>
-          <p>Расскажи, чем ты занимаешься — анкета будет опубликована сразу</p>
+          <h2 id="form-title">Создать анкету</h2>
+          <p id="form-sub">Сначала анкету проверяет модератор — в каталоге она появится после проверки</p>
         </div>
       </div>
 
@@ -37,7 +37,7 @@
 
         <div class="field">
           <label>Имя / ник</label>
-          <input type="text" name="name" required maxlength="80" placeholder="например, mefix" />
+          <input type="text" name="name" required minlength="2" maxlength="80" placeholder="например, mefix" />
         </div>
 
         <div class="field">
@@ -46,13 +46,26 @@
         </div>
 
         <div class="field">
-          <label>Описание</label>
-          <textarea name="description" required rows="5" maxlength="4000" placeholder="Расскажи, чем занимаешься и как работаешь"></textarea>
+          <label>Название анкеты</label>
+          <input type="text" name="title" required minlength="3" maxlength="80" placeholder="например: Дизайн логотипов и баннеров" />
         </div>
 
         <div class="field">
-          <label>Название <span class="hint">через запятую</span></label>
-          <input type="text" name="services" placeholder="название анкеты, которое будет видно покупателям" />
+          <label>Описание <span class="hint">о себе и работе, необязательно</span></label>
+          <textarea name="description" rows="4" maxlength="4000" placeholder="Кто ты, какой у тебя опыт"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Услуги <span class="hint">что именно ты делаешь, минимум 30 символов</span></label>
+          <textarea name="servicesText" required minlength="30" rows="5" maxlength="4000" placeholder="Перечисли услуги, сроки и что входит в цену"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Фото / видео работ <span class="hint">от 1 до 5 в сумме</span></label>
+          <div id="existing-media" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"></div>
+          <input type="file" name="worksFiles" accept="image/png,image/jpeg,image/webp" multiple />
+          <div id="works-count" class="text-muted" style="font-size:13px;margin-top:6px;"></div>
+          <textarea name="videoLinks" rows="2" placeholder="Ссылки на видео (YouTube и т.п.), каждая с новой строки" style="margin-top:8px;"></textarea>
         </div>
 
         <div class="field-row">
@@ -62,12 +75,12 @@
           </div>
           <div class="field">
             <label>Контакт</label>
-            <input type="text" name="contact" required maxlength="200" placeholder="Telegram // discord" />
+            <input type="text" name="contact" required minlength="3" maxlength="200" placeholder="Telegram // discord" />
           </div>
         </div>
 
         <div class="field">
-          <label>Аватар <span class="hint">выбери картинку, необязательно</span></label>
+          <label>Аватар <span class="hint" id="avatar-hint">выбери картинку, необязательно</span></label>
           <input type="file" name="avatarFile" accept="image/png,image/jpeg,image/webp" />
         </div>
 
@@ -76,7 +89,7 @@
           <input type="text" name="tags" placeholder="дизайн, логотип, брендинг" />
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block">Опубликовать анкету</button>
+        <button type="submit" class="btn btn-primary btn-block">Отправить на модерацию</button>
       </form>
     </div>
 

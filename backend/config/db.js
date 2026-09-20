@@ -10,6 +10,10 @@ const DB_FILE = path.resolve(
 // Make sure the database directory exists before opening the file.
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
+// On hosting with a temporary disk the file is gone after every restart: bring
+// the latest backup back first (only does something when BACKUP_* is set).
+require('../utils/backup').restoreSync(DB_FILE);
+
 const db = new Database(DB_FILE);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
@@ -61,5 +65,44 @@ if (!columnExists('profiles', 'roles')) {
 if (!columnExists('users', 'is_moderator')) {
   db.exec(`ALTER TABLE users ADD COLUMN is_moderator INTEGER NOT NULL DEFAULT 0`);
 }
+
+// Profile title ("Название анкеты"), owner on/off switch (REQ—ON / REQ—OFF)
+// and the reason shown to the owner when a moderator rejects a profile.
+if (!columnExists('profiles', 'title')) {
+  db.exec(`ALTER TABLE profiles ADD COLUMN title TEXT`);
+}
+if (!columnExists('profiles', 'is_active')) {
+  db.exec(`ALTER TABLE profiles ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`);
+}
+if (!columnExists('profiles', 'reject_reason')) {
+  db.exec(`ALTER TABLE profiles ADD COLUMN reject_reason TEXT`);
+}
+
+// "Услуги" text (the profile description field is now "Описание"), the works
+// gallery (1-5 photos/video links, JSON) and the skill tier set by moderators.
+if (!columnExists('profiles', 'services_text')) {
+  db.exec(`ALTER TABLE profiles ADD COLUMN services_text TEXT`);
+}
+if (!columnExists('profiles', 'media')) {
+  db.exec(`ALTER TABLE profiles ADD COLUMN media TEXT`);
+}
+if (!columnExists('profiles', 'tier')) {
+  db.exec(`ALTER TABLE profiles ADD COLUMN tier TEXT`);
+}
+
+// Warnings (WARN) given to accounts by staff. 3 warnings = account blocked.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS warnings (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    issued_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    reason     TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_warnings_user ON warnings(user_id);
+`);
+
+// Start saving snapshots of the database (only when BACKUP_* is configured).
+require('../utils/backup').start(db);
 
 module.exports = db;

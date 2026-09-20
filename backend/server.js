@@ -35,7 +35,8 @@ app.use(
   })
 );
 app.use(cors());
-app.use(express.json({ limit: '200kb' })); // caps request body size
+// Profiles carry up to 5 small photos of works, so allow a bigger body.
+app.use(express.json({ limit: '4mb' })); // caps request body size
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // General API rate limit; stricter limits are applied to auth routes separately.

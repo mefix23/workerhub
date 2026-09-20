@@ -48,7 +48,7 @@ function renderNav() {
           ${
             user
               ? `<div class="nav-user">
-                   <span class="text-muted">${escapeHtml(user.username)}</span>
+                   <a class="text-muted" href="/user.html">${escapeHtml(user.username)}</a>
                    <button class="btn btn-sm btn-ghost" id="nav-logout">Выйти</button>
                  </div>`
               : `<a href="/login.html">Войти</a>

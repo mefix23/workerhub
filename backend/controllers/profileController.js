@@ -1,7 +1,11 @@
 const Profile = require('../models/Profile');
+const User = require('../models/User');
 const { toCents } = require('../utils/money');
 const { ROLE_SLUGS } = require('../constants/roles');
 const { isStaff } = require('../middleware/auth');
+
+const MAX_PROFILES_PER_USER = 5;
+const MAX_PENDING_PER_USER = 2;
 
 function list(req, res, next) {
   try {
@@ -31,12 +35,21 @@ function list(req, res, next) {
 function getById(req, res, next) {
   try {
     const profile = Profile.findById(req.params.id);
-    if (!profile || profile.status !== 'approved') {
-      // Owners and staff can still view a pending/rejected (hidden) profile.
-      if (!profile || !req.user || (profile.user_id !== req.user.id && !isStaff(req.user))) {
-        return res.status(404).json({ error: 'Profile not found.' });
-      }
+    if (!profile) return res.status(404).json({ error: 'Profile not found.' });
+
+    const owner = User.findById(profile.user_id);
+    const canSeeAll = !!req.user && (profile.user_id === req.user.id || isStaff(req.user));
+    const isPublic =
+      profile.status === 'approved' && profile.is_active === 1 && owner && !owner.is_blocked;
+
+    // Unpublished, switched-off (REQ—OFF) or blocked-owner profiles are only
+    // visible to their owner and to staff.
+    if (!isPublic && !canSeeAll) {
+      return res.status(404).json({ error: 'Profile not found.' });
     }
+    if (!canSeeAll) delete profile.reject_reason;
+
+    profile.owner = owner ? { id: owner.id, username: owner.username } : null;
     res.json({ profile });
   } catch (err) {
     next(err);
@@ -51,21 +64,35 @@ function create(req, res, next) {
       return res.status(400).json({ error: 'Invalid price.' });
     }
 
+    // Anti-spam limits.
+    if (Profile.countByUser(req.user.id) >= MAX_PROFILES_PER_USER) {
+      return res.status(409).json({
+        error: `Максимум ${MAX_PROFILES_PER_USER} анкет на аккаунт. Удали ненужную, чтобы создать новую.`,
+      });
+    }
+    if (Profile.countPendingByUser(req.user.id) >= MAX_PENDING_PER_USER) {
+      return res.status(409).json({
+        error: `У тебя уже ${MAX_PENDING_PER_USER} анкеты на проверке. Дождись решения модератора.`,
+      });
+    }
+
     const profile = Profile.create({
       userId: req.user.id,
       name: String(b.name).trim(),
+      title: String(b.title).trim(),
       avatarUrl: b.avatarUrl ? String(b.avatarUrl).trim() : null,
       roles: b.roles,
-      description: String(b.description).trim(),
+      description: String(b.description || '').trim(),
+      servicesText: String(b.servicesText).trim(),
+      media: b.media,
       services: b.services,
       priceCents,
       currency: b.currency || 'RUB',
       contact: String(b.contact).trim(),
       portfolio: b.portfolio,
       tags: b.tags,
-      // MVP: auto-approved. Structure already supports manual moderation
-      // (status can be set to 'pending' here once an admin review step exists).
-      status: 'approved',
+      // New profiles wait for a moderator ("Выложить" / "Отклонить").
+      status: 'pending',
     });
 
     res.status(201).json({ profile });
@@ -87,11 +114,15 @@ function update(req, res, next) {
       return res.status(400).json({ error: 'Invalid price.' });
     }
 
+    // Editing sends the profile back to moderation (status -> pending).
     const profile = Profile.update(existing.id, {
       name: String(b.name).trim(),
+      title: String(b.title).trim(),
       avatarUrl: b.avatarUrl ? String(b.avatarUrl).trim() : null,
       roles: b.roles,
-      description: String(b.description).trim(),
+      description: String(b.description || '').trim(),
+      servicesText: String(b.servicesText).trim(),
+      media: b.media,
       services: b.services,
       priceCents,
       currency: b.currency || existing.currency,
@@ -126,6 +157,21 @@ function remove(req, res, next) {
   }
 }
 
+// Owner switch: REQ—ON / REQ—OFF.
+function setActive(req, res, next) {
+  try {
+    const existing = Profile.findById(req.params.id);
+    if (!existing || existing.user_id !== req.user.id) {
+      return res.status(404).json({ error: 'Profile not found.' });
+    }
+    const active = !!(req.body && req.body.active);
+    const profile = Profile.setActive(existing.id, active);
+    res.json({ profile });
+  } catch (err) {
+    next(err);
+  }
+}
+
 function myProfiles(req, res, next) {
   try {
     const profiles = Profile.listByUser(req.user.id);
@@ -135,4 +181,4 @@ function myProfiles(req, res, next) {
   }
 }
 
-module.exports = { list, getById, create, update, remove, myProfiles };
+module.exports = { list, getById, create, update, remove, setActive, myProfiles };

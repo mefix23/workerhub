@@ -20,4 +20,11 @@ services:
       - key: ADMIN_SETUP_KEY
         generateValue: true
       - key: SEED_DEMO_DATA
-        value: "true"
+        value: "false"
+      # Backups of the database (see README / instructions): set these in Render -> Environment.
+      - key: BACKUP_GITHUB_REPO
+        sync: false
+      - key: BACKUP_GITHUB_TOKEN
+        sync: false
+      - key: BACKUP_KEY
+        sync: false

@@ -14,10 +14,11 @@ function profileCard(p) {
         <div class="avatar">${avatarContent}</div>
         <div>
           <div class="card-name">${escapeHtml(p.name)}</div>
-          <div class="tag-row">${roleBadges(p)}</div>
+          ${p.title ? `<div style="font-size:13.5px;font-weight:600;color:var(--text-secondary);margin:2px 0 6px;">${escapeHtml(p.title)}</div>` : ''}
+          <div class="tag-row">${roleBadges(p)}${p.tier_label ? `<span class="tag">Скилл: ${escapeHtml(p.tier_label)}</span>` : ''}</div>
         </div>
       </div>
-      <div class="card-desc">${escapeHtml(p.description)}</div>
+      <div class="card-desc">${escapeHtml(p.services_text || p.description || '')}</div>
       <div class="card-bottom">
         <div class="price">${formatPrice(p.price_cents, p.currency)}</div>
         <span class="btn btn-sm btn-ghost">Открыть →</span>
