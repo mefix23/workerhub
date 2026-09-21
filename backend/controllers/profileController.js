@@ -1,5 +1,7 @@
 const Profile = require('../models/Profile');
 const User = require('../models/User');
+const Shop = require('../models/Shop');
+const { findItem } = require('../constants/shop');
 const { toCents } = require('../utils/money');
 const { ROLE_SLUGS } = require('../constants/roles');
 const { isStaff } = require('../middleware/auth');
@@ -172,6 +174,38 @@ function setActive(req, res, next) {
   }
 }
 
+// Owner picks decorations (background / font / frame) he has bought.
+// An empty value = default look.
+function setAppearance(req, res, next) {
+  try {
+    const existing = Profile.findById(req.params.id);
+    if (!existing || existing.user_id !== req.user.id) {
+      return res.status(404).json({ error: 'Profile not found.' });
+    }
+
+    const b = req.body || {};
+    const next_ = { bg: existing.bg, font: existing.font, frame: existing.frame };
+    for (const type of ['bg', 'font', 'frame']) {
+      if (!(type in b)) continue;
+      const id = b[type];
+      if (id === null || id === '') {
+        next_[type] = null;
+        continue;
+      }
+      const item = findItem(id);
+      if (!item || item.type !== type || !Shop.has(req.user.id, item.id)) {
+        return res.status(400).json({ error: 'Этот предмет тебе недоступен. Сначала купи его в магазине.' });
+      }
+      next_[type] = item.id;
+    }
+
+    const profile = Profile.setAppearance(existing.id, next_);
+    res.json({ profile });
+  } catch (err) {
+    next(err);
+  }
+}
+
 function myProfiles(req, res, next) {
   try {
     const profiles = Profile.listByUser(req.user.id);
@@ -181,4 +215,4 @@ function myProfiles(req, res, next) {
   }
 }
 
-module.exports = { list, getById, create, update, remove, setActive, myProfiles };
+module.exports = { list, getById, create, update, remove, setActive, setAppearance, myProfiles };

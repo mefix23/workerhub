@@ -44,10 +44,13 @@ function renderNav() {
           <a href="/catalog.html">Каталог</a>
           <a href="/collabs.html">Коллабы</a>
           <a href="/create.html">Создать анкету</a>
+          <a href="/shop.html">Магазин</a>
+          <a href="/support.html">Помощь</a>
           ${isStaffUser(user) ? `<a href="/admin.html">Панель</a>` : ''}
           ${
             user
               ? `<div class="nav-user">
+                   <a href="/shop.html" title="Монеты" style="font-weight:600;">🪙 ${Number(user.coins) || 0}</a>
                    <a class="text-muted" href="/user.html">${escapeHtml(user.username)}</a>
                    <button class="btn btn-sm btn-ghost" id="nav-logout">Выйти</button>
                  </div>`

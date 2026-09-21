@@ -5,6 +5,8 @@
   let users = [];
   let profiles = [];
   let queue = [];
+  let reviews = [];
+  let tickets = [];
   let tab = 'queue';
   let search = '';
   let profileFilter = 'all';
@@ -112,6 +114,11 @@
           : `<button class="btn btn-sm btn-ghost adm-danger" data-action="block" data-id="${u.id}" data-value="1">Заблокировать</button>`
       );
     }
+    if (isAdmin()) {
+      actions.push(
+        `<button class="btn btn-sm btn-ghost" data-action="coins" data-id="${u.id}">Выдать монеты</button>`
+      );
+    }
     if (isAdmin() && u.warn_count > 0 && u.role !== 'admin') {
       actions.push(
         `<button class="btn btn-sm btn-ghost" data-action="unwarn" data-id="${u.id}">Снять последний WARN</button>`
@@ -129,6 +136,7 @@
     const sub = [
       u.email ? escapeHtml(u.email) : null,
       `анкет: ${u.profiles_count}`,
+      isAdmin() && typeof u.coins === 'number' ? `🪙 ${u.coins}` : null,
       date ? `с ${escapeHtml(date)}` : null,
     ]
       .filter(Boolean)
@@ -187,6 +195,41 @@
     `;
   }
 
+  function reviewRow(r) {
+    return `
+      <div class="adm-row">
+        <div>
+          <div class="adm-title">
+            <span style="color:#fbbf24;letter-spacing:1px;">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+            <a href="/profile.html?id=${r.profile_id}">${escapeHtml(r.profile_name)}</a>
+          </div>
+          <div class="adm-sub">Автор отзыва: <a href="/user.html?id=${r.author_id}">${escapeHtml(r.author_name)}</a> · ${escapeHtml(String(r.created_at).slice(0, 16))}</div>
+          <div class="adm-desc" style="white-space:pre-wrap;">${escapeHtml(r.text)}</div>
+        </div>
+        <div class="adm-actions">
+          <button class="btn btn-sm btn-primary" data-action="rstatus" data-id="${r.id}" data-value="approved">Выложить</button>
+          <button class="btn btn-sm btn-ghost adm-danger" data-action="rstatus" data-id="${r.id}" data-value="rejected">Отклонить</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function ticketRow(t) {
+    const badges = [
+      t.status === 'open' ? '<span class="adm-badge ok">Открыто</span>' : '<span class="adm-badge">Закрыто</span>',
+      t.awaiting_staff ? '<span class="adm-badge bad">Ждёт ответа</span>' : '',
+    ].join(' ');
+    return `
+      <div class="adm-row">
+        <div>
+          <div class="adm-title">${escapeHtml(t.subject)} ${badges}</div>
+          <div class="adm-sub">от <a href="/user.html?id=${t.user_id}">${escapeHtml(t.username)}</a> · сообщений: ${t.messages_count} · ${escapeHtml(String(t.updated_at).slice(0, 16))}</div>
+        </div>
+        <div class="adm-actions"><a class="btn btn-sm btn-primary" href="/support.html?id=${t.id}">Открыть и ответить</a></div>
+      </div>
+    `;
+  }
+
   function profileStatus(p) {
     if (p.status === 'pending') return ['На модерации', ''];
     if (p.status === 'rejected') return ['Отклонена', 'bad'];
@@ -241,6 +284,18 @@
       box.innerHTML = rows.length
         ? rows.map(queueRow).join('')
         : '<div class="empty-state">Новых анкет на проверке нет 🎉</div>';
+    } else if (tab === 'reviews') {
+      const rows = reviews.filter(
+        (r) => !q || `${r.profile_name} ${r.author_name} ${r.text}`.toLowerCase().includes(q)
+      );
+      box.innerHTML = rows.length
+        ? rows.map(reviewRow).join('')
+        : '<div class="empty-state">Отзывов на проверке нет 🎉</div>';
+    } else if (tab === 'support') {
+      const rows = tickets.filter((t) => !q || `${t.subject} ${t.username}`.toLowerCase().includes(q));
+      box.innerHTML = rows.length
+        ? rows.map(ticketRow).join('')
+        : '<div class="empty-state">Обращений нет.</div>';
     } else if (tab === 'users') {
       const rows = users.filter((u) => !q || `${u.username} ${u.email || ''}`.toLowerCase().includes(q));
       box.innerHTML = rows.length
@@ -277,6 +332,8 @@
       `<button class="adm-chip ${tab === value ? 'active' : ''}" data-tab="${value}">${label}</button>`;
     box.innerHTML =
       chip('queue', `На модерации (${queue.length})`) +
+      chip('reviews', `Отзывы (${reviews.length})`) +
+      chip('support', `Поддержка (${tickets.filter((t) => t.awaiting_staff).length})`) +
       chip('users', `Аккаунты (${users.length})`) +
       chip('profiles', `Анкеты (${profiles.length})`);
   }
@@ -313,14 +370,18 @@
   }
 
   async function loadAll() {
-    const [u, p, qu] = await Promise.all([
+    const [u, p, qu, rv, tk] = await Promise.all([
       api('/users', { auth: true }),
       api('/mod/profiles', { auth: true }),
       api('/mod/queue', { auth: true }),
+      api('/mod/reviews', { auth: true }),
+      api('/support/admin/tickets?status=open', { auth: true }),
     ]);
     users = u.users;
     profiles = p.profiles;
     queue = qu.profiles;
+    reviews = rv.reviews;
+    tickets = tk.tickets;
   }
 
   async function act(fn, okMessage) {
@@ -387,6 +448,26 @@
       act(
         () => api(`/users/${id}/warnings/last`, { method: 'DELETE', auth: true }),
         'Предупреждение снято'
+      );
+    } else if (action === 'coins') {
+      const raw = window.prompt(
+        `Сколько монет выдать ${targetUser ? targetUser.username : ''}? (целое число от 1 до 10000)`
+      );
+      if (raw === null) return;
+      act(
+        () => api(`/users/${id}/coins`, { method: 'POST', auth: true, body: { amount: Number(raw) } }),
+        'Монеты выданы'
+      );
+    } else if (action === 'rstatus') {
+      let reason = '';
+      if (value === 'rejected') {
+        const r = window.prompt('Причина отказа (её увидит автор отзыва). Можно оставить пустым:');
+        if (r === null) return;
+        reason = r;
+      }
+      act(
+        () => api(`/mod/reviews/${id}/status`, { method: 'PATCH', auth: true, body: { status: value, reason } }),
+        value === 'approved' ? 'Отзыв выложен' : 'Отзыв отклонён'
       );
     } else if (action === 'mod') {
       const on = value === '1';

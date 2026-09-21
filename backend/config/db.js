@@ -90,6 +90,76 @@ if (!columnExists('profiles', 'tier')) {
   db.exec(`ALTER TABLE profiles ADD COLUMN tier TEXT`);
 }
 
+// Coins, profile look (bought items) and the one-time reward flag.
+if (!columnExists('users', 'coins')) {
+  db.exec(`ALTER TABLE users ADD COLUMN coins INTEGER NOT NULL DEFAULT 0`);
+}
+if (!columnExists('users', 'last_daily')) {
+  db.exec(`ALTER TABLE users ADD COLUMN last_daily TEXT`);
+}
+for (const col of ['bg', 'font', 'frame']) {
+  if (!columnExists('profiles', col)) {
+    db.exec(`ALTER TABLE profiles ADD COLUMN ${col} TEXT`);
+  }
+}
+if (!columnExists('profiles', 'reward_paid')) {
+  db.exec(`ALTER TABLE profiles ADD COLUMN reward_paid INTEGER NOT NULL DEFAULT 0`);
+}
+
+// Reviews (shown only after a moderator approves them), coin ledger, bought
+// items and support tickets.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS reviews (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id    INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    author_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating        INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    text          TEXT NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    reject_reason TEXT,
+    reward_paid   INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (profile_id, author_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_reviews_profile ON reviews(profile_id, status);
+
+  CREATE TABLE IF NOT EXISTS coin_transactions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount     INTEGER NOT NULL,
+    reason     TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_coin_tx_user ON coin_transactions(user_id);
+
+  CREATE TABLE IF NOT EXISTS user_items (
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    item_id   TEXT NOT NULL,
+    bought_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, item_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS tickets (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    subject    TEXT NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_tickets_user ON tickets(user_id);
+
+  CREATE TABLE IF NOT EXISTS ticket_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id  INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+    author_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    is_staff   INTEGER NOT NULL DEFAULT 0,
+    body       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_ticket_msgs ON ticket_messages(ticket_id);
+`);
+
 // Warnings (WARN) given to accounts by staff. 3 warnings = account blocked.
 db.exec(`
   CREATE TABLE IF NOT EXISTS warnings (

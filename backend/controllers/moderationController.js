@@ -1,6 +1,9 @@
 const db = require('../config/db');
 const Profile = require('../models/Profile');
 const { TIER_SLUGS } = require('../constants/tiers');
+const Review = require('../models/Review');
+const Coins = require('../models/Coins');
+const { REWARDS } = require('../constants/shop');
 
 // Profiles waiting for a decision (oldest first), with everything a
 // moderator needs to judge them.
@@ -63,7 +66,47 @@ function setProfileStatus(req, res, next) {
 
     const reason = String((req.body && req.body.reason) || '').trim().slice(0, 200);
     Profile.setStatus(existing.id, status, reason);
-    res.json({ ok: true, status });
+
+    // The owner gets coins the first time his profile is approved.
+    let rewarded = false;
+    if (status === 'approved' && Profile.markRewarded(existing.id)) {
+      Coins.add(existing.user_id, REWARDS.profileApproved, 'Анкета одобрена');
+      rewarded = true;
+    }
+    res.json({ ok: true, status, rewarded });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Reviews waiting for a moderator.
+function listReviews(req, res, next) {
+  try {
+    res.json({ reviews: Review.queue() });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Approve ("Выложить") or reject a review. Approving pays the author once.
+function setReviewStatus(req, res, next) {
+  try {
+    const status = req.body && req.body.status;
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Неверный статус.' });
+    }
+    const existing = Review.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Отзыв не найден.' });
+
+    const reason = String((req.body && req.body.reason) || '').trim().slice(0, 200);
+    Review.setStatus(existing.id, status, reason);
+
+    let rewarded = false;
+    if (status === 'approved' && Review.markRewarded(existing.id)) {
+      Coins.add(existing.author_id, REWARDS.reviewApproved, 'Отзыв одобрен');
+      rewarded = true;
+    }
+    res.json({ ok: true, status, rewarded });
   } catch (err) {
     next(err);
   }
@@ -104,4 +147,12 @@ function deleteProfile(req, res, next) {
   }
 }
 
-module.exports = { listQueue, listProfiles, setProfileStatus, setProfileTier, deleteProfile };
+module.exports = {
+  listQueue,
+  listProfiles,
+  setProfileStatus,
+  setProfileTier,
+  deleteProfile,
+  listReviews,
+  setReviewStatus,
+};

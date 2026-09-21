@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-const PUBLIC_FIELDS = 'id, username, email, role, is_blocked, is_moderator, created_at';
+const PUBLIC_FIELDS = 'id, username, email, role, is_blocked, is_moderator, coins, created_at';
 
 const User = {
   create({ username, email, passwordHash }) {

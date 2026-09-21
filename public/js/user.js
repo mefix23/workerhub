@@ -112,6 +112,11 @@ async function loadUser() {
         </div>
       </div>
 
+      ${
+        data.is_self
+          ? `<div class="profile-block" style="margin-top:24px;"><h3>Монеты</h3><p style="margin:0;"><b style="color:#fbbf24;">🪙 ${Number(u.coins) || 0}</b> · <a href="/shop.html">Магазин</a> · <a href="/faq.html">Как получить монеты</a></p></div>`
+          : ''
+      }
       ${showWarns ? warnBlock({ ...data, user: u }) : ''}
 
       <div class="section-head" style="margin-top:32px;">

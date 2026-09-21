@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Магазин — WORKERHUB</title>
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .shop-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; display: grid; gap: 10px; }
+  .shop-preview { min-height: 72px; border-radius: 12px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; border: 1px solid var(--border); font-size: 17px; }
+  .shop-name { font-weight: 700; }
+  .shop-price { color: #fbbf24; font-weight: 700; }
+  .shop-earn li { margin-bottom: 6px; color: var(--text-secondary); }
+  .shop-hist { list-style: none; padding: 0; margin: 0; }
+  .shop-hist li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .plus { color: #86efac; } .minus { color: #fca5a5; }
+</style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<section class="section">
+  <div class="container" id="shop-root"><div class="loading">Загрузка…</div></div>
+</section>
+
+<footer class="footer">
+  <div class="container">WORKERHUB · MVP · <a href="/faq.html">FAQ</a> · <a href="/support.html">Поддержка</a></div>
+</footer>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/shop.js"></script>
+<script src="/js/ui.js"></script>
+</body>
+</html>

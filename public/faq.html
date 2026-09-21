@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FAQ — WORKERHUB</title>
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  .faq-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px; }
+  .faq-item summary { cursor: pointer; font-weight: 700; }
+  .faq-item p { margin: 10px 0 0; color: var(--text-secondary); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head"><div><h2>FAQ</h2><p>Частые вопросы. Не нашёл ответ? Напиши в <a href="/support.html">поддержку</a>.</p></div></div>
+  <details class="faq-item"><summary>Как создать анкету?</summary><p>Нажми «Создать анкету», заполни форму: ник, роль, название анкеты, услуги, фото или видео работ (от 1 до 5), цену и контакт. После отправки анкету проверяет модератор.</p></details>
+  <details class="faq-item"><summary>Почему моей анкеты нет в каталоге?</summary><p>Новые анкеты и любые изменения сначала проверяет модератор. Статус виден на странице «Профиль» (значок с ником в меню): «На модерации», «Опубликована» или «Отклонена» с причиной. Если отклонили, исправь анкету кнопкой «Изменить» и отправь снова.</p></details>
+  <details class="faq-item"><summary>Можно ли изменить анкету?</summary><p>Да, кнопка «Изменить анкету» есть на странице анкеты и в твоём профиле. После сохранения анкета снова уходит на проверку и пропадает из каталога, пока её не одобрят.</p></details>
+  <details class="faq-item"><summary>Что такое REQ—ON и REQ—OFF?</summary><p>Переключатель на странице твоей анкеты. REQ—OFF временно отключает анкету: она пропадает из каталога и недоступна другим. REQ—ON включает её обратно (если она одобрена модератором).</p></details>
+  <details class="faq-item"><summary>Что такое WARN?</summary><p>Предупреждение от модерации за нарушение правил (спам, оскорбления, рофлоанкеты). Причину видно в профиле. После 3 предупреждений аккаунт блокируется, а его анкеты пропадают из каталога.</p></details>
+  <details class="faq-item"><summary>Что такое тир?</summary><p>Оценка скилла анкеты, которую выставляет модератор: низкий, ниже среднего, средний, выше среднего, высокий, отличный. Она показана на анкете как «Скилл».</p></details>
+  <details class="faq-item"><summary>Как работают отзывы?</summary><p>Оставить отзыв можно на чужую опубликованную анкету: оценка от 1 до 5 и текст от 10 символов. Отзыв виден всем только после проверки модератором. На одну анкету можно оставить один отзыв.</p></details>
+  <details class="faq-item"><summary>Что такое монеты и как их получить?</summary><p>Монеты это внутренняя валюта сайта, за реальные деньги её купить нельзя. Их дают: +20 раз в сутки (бонус в магазине), +100 когда одобрят твою первую версию анкеты, +30 когда одобрят твой отзыв.</p></details>
+  <details class="faq-item"><summary>На что тратить монеты?</summary><p>В магазине можно купить украшения анкеты: фон, шрифт и рамку. Купленное применяется на странице твоей анкеты в блоке «Оформление».</p></details>
+  <details class="faq-item"><summary>Как связаться с поддержкой?</summary><p>Открой раздел «Помощь», напиши обращение с темой и описанием. Ответ модераторов появится в этом же обращении. Открытых обращений может быть не больше пяти.</p></details>
+  <details class="faq-item"><summary>Мой аккаунт заблокирован, что делать?</summary><p>Войти в заблокированный аккаунт нельзя. Причину блокировки можно узнать у администрации сайта там, где ты о нём узнал.</p></details>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">WORKERHUB · MVP · <a href="/faq.html">FAQ</a> · <a href="/support.html">Поддержка</a></div>
+</footer>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/ui.js"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@ const db = require('../config/db');
 const User = require('../models/User');
 const Profile = require('../models/Profile');
 const Warning = require('../models/Warning');
+const Coins = require('../models/Coins');
 const { isStaff } = require('../middleware/auth');
 
 // Staff only (admins and moderators). Moderators don't get to see emails.
@@ -12,6 +13,7 @@ function listUsers(req, res, next) {
     const rows = db
       .prepare(
         `SELECT u.id, u.username, u.email, u.role, u.is_blocked, u.is_moderator, u.created_at,
+                u.coins,
                 (SELECT COUNT(*) FROM profiles p WHERE p.user_id = u.id) AS profiles_count,
                 (SELECT COUNT(*) FROM warnings w WHERE w.user_id = u.id) AS warn_count
          FROM users u
@@ -134,7 +136,10 @@ function getPublic(req, res, next) {
       is_moderator: target.is_moderator,
       is_blocked: target.is_blocked,
     };
-    if (self) user.email = target.email;
+    if (self) {
+      user.email = target.email;
+      user.coins = Coins.balance(target.id);
+    }
 
     const body = { user, profiles, is_self: self };
     if (self || staff) {
@@ -149,6 +154,22 @@ function getPublic(req, res, next) {
       body.warn_count = body.warnings.length;
     }
     res.json(body);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Admin only: give coins to an account (for tests, contests, compensation).
+function grantCoins(req, res, next) {
+  try {
+    const target = findTarget(req);
+    if (!target) return res.status(404).json({ error: 'Пользователь не найден.' });
+    const amount = Number(req.body && req.body.amount);
+    if (!Number.isInteger(amount) || amount < 1 || amount > 10000) {
+      return res.status(400).json({ error: 'Сумма: целое число от 1 до 10000.' });
+    }
+    Coins.add(target.id, amount, `Выдано администратором (${req.user.username})`);
+    res.json({ coins: Coins.balance(target.id) });
   } catch (err) {
     next(err);
   }
@@ -194,4 +215,13 @@ function claimAdmin(req, res, next) {
   }
 }
 
-module.exports = { listUsers, setBlocked, setModerator, claimAdmin, warnUser, removeLastWarning, getPublic };
+module.exports = {
+  listUsers,
+  setBlocked,
+  setModerator,
+  claimAdmin,
+  warnUser,
+  removeLastWarning,
+  getPublic,
+  grantCoins,
+};

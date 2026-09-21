@@ -8,6 +8,7 @@ const {
   warnUser,
   removeLastWarning,
   getPublic,
+  grantCoins,
 } = require('../controllers/userController');
 const { requireAuth, optionalAuth, requireAdmin, requireStaff } = require('../middleware/auth');
 
@@ -28,6 +29,7 @@ router.patch('/:id/block', requireAuth, requireStaff, setBlocked);
 router.patch('/:id/moderator', requireAuth, requireAdmin, setModerator);
 router.post('/:id/warn', requireAuth, requireStaff, warnUser);
 router.delete('/:id/warnings/last', requireAuth, requireAdmin, removeLastWarning);
+router.post('/:id/coins', requireAuth, requireAdmin, grantCoins);
 router.get('/:id/public', optionalAuth, getPublic);
 
 module.exports = router;

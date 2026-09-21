@@ -9,7 +9,7 @@ function profileCard(p) {
     : initials(p.name);
 
   return `
-    <a class="card" href="/profile.html?id=${p.id}">
+    <a class="card" href="/profile.html?id=${p.id}" style="${escapeHtml((p.appearance && p.appearance.frame_css) || '')}">
       <div class="card-top">
         <div class="avatar">${avatarContent}</div>
         <div>
@@ -20,7 +20,11 @@ function profileCard(p) {
       </div>
       <div class="card-desc">${escapeHtml(p.services_text || p.description || '')}</div>
       <div class="card-bottom">
-        <div class="price">${formatPrice(p.price_cents, p.currency)}</div>
+        <div class="price">${formatPrice(p.price_cents, p.currency)}${
+          p.rating_count
+            ? ` <span class="text-muted" style="font-size:13px;font-weight:500;">★ ${p.rating_avg} (${p.rating_count})</span>`
+            : ''
+        }</div>
         <span class="btn btn-sm btn-ghost">Открыть →</span>
       </div>
     </a>

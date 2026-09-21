@@ -1,11 +1,14 @@
 const db = require('../config/db');
 const { labelsForSlugs } = require('../constants/roles');
 const { tierLabel } = require('../constants/tiers');
+const { cssFor } = require('../constants/shop');
 
 // Everything except the (large) works gallery, for lists.
 const LIST_COLUMNS = `id, user_id, name, title, avatar_url, role_title, roles, description,
   services_text, services, price_cents, currency, contact, portfolio, tags, status,
-  is_active, reject_reason, tier, created_at, updated_at`;
+  is_active, reject_reason, tier, bg, font, frame, created_at, updated_at,
+  (SELECT COUNT(*) FROM reviews r WHERE r.profile_id = profiles.id AND r.status = 'approved') AS rating_count,
+  (SELECT ROUND(AVG(r.rating), 1) FROM reviews r WHERE r.profile_id = profiles.id AND r.status = 'approved') AS rating_avg`;
 
 function serializeRow(row) {
   if (!row) return row;
@@ -14,6 +17,15 @@ function serializeRow(row) {
     ...row,
     media: row.media ? JSON.parse(row.media) : undefined,
     tier_label: tierLabel(row.tier),
+    // bought decorations, already turned into css (see constants/shop.js)
+    appearance: {
+      bg: row.bg || null,
+      font: row.font || null,
+      frame: row.frame || null,
+      bg_css: cssFor(row.bg),
+      font_css: cssFor(row.font),
+      frame_css: cssFor(row.frame),
+    },
     services: row.services ? JSON.parse(row.services) : [],
     portfolio: row.portfolio ? JSON.parse(row.portfolio) : [],
     tags: row.tags ? JSON.parse(row.tags) : [],
@@ -94,7 +106,14 @@ const Profile = {
   },
 
   findById(id) {
-    const row = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    const row = db
+      .prepare(
+        `SELECT profiles.*,
+           (SELECT COUNT(*) FROM reviews r WHERE r.profile_id = profiles.id AND r.status = 'approved') AS rating_count,
+           (SELECT ROUND(AVG(r.rating), 1) FROM reviews r WHERE r.profile_id = profiles.id AND r.status = 'approved') AS rating_avg
+         FROM profiles WHERE id = ?`
+      )
+      .get(id);
     return serializeRow(row);
   },
 
@@ -170,6 +189,24 @@ const Profile = {
   setActive(id, active) {
     db.prepare(`UPDATE profiles SET is_active = ? WHERE id = ?`).run(active ? 1 : 0, id);
     return Profile.findById(id);
+  },
+
+  // Bought decorations chosen by the owner (null = default look).
+  setAppearance(id, { bg, font, frame }) {
+    db.prepare('UPDATE profiles SET bg = ?, font = ?, frame = ? WHERE id = ?').run(
+      bg || null,
+      font || null,
+      frame || null,
+      id
+    );
+    return Profile.findById(id);
+  },
+
+  // True only the first time a profile is approved (reward is paid once).
+  markRewarded(id) {
+    return (
+      db.prepare('UPDATE profiles SET reward_paid = 1 WHERE id = ? AND reward_paid = 0').run(id).changes > 0
+    );
   },
 
   // Skill tier chosen by a moderator (null = not rated yet).
