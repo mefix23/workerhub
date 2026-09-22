@@ -160,6 +160,30 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_ticket_msgs ON ticket_messages(ticket_id);
 `);
 
+// Favorites (anketas a user wants to buy from later) and requests (the new
+// mechanic that replaced the old "Заказать" button: a short message sent to
+// the creator, who sees it and reaches out himself; nothing is paid here).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS favorites (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, profile_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS profile_requests (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    buyer_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message    TEXT NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'seen')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (profile_id, buyer_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_requests_profile ON profile_requests(profile_id);
+  CREATE INDEX IF NOT EXISTS idx_requests_buyer ON profile_requests(buyer_id);
+`);
+
 // Warnings (WARN) given to accounts by staff. 3 warnings = account blocked.
 db.exec(`
   CREATE TABLE IF NOT EXISTS warnings (

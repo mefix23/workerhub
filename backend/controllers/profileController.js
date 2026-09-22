@@ -2,6 +2,9 @@ const Profile = require('../models/Profile');
 const User = require('../models/User');
 const Shop = require('../models/Shop');
 const { findItem } = require('../constants/shop');
+const Favorite = require('../models/Favorite');
+const db = require('../config/db');
+const ProfileRequest = require('../models/ProfileRequest');
 const { toCents } = require('../utils/money');
 const { ROLE_SLUGS } = require('../constants/roles');
 const { isStaff } = require('../middleware/auth');
@@ -52,6 +55,7 @@ function getById(req, res, next) {
     if (!canSeeAll) delete profile.reject_reason;
 
     profile.owner = owner ? { id: owner.id, username: owner.username } : null;
+    if (req.user) profile.is_favorited = Favorite.has(req.user.id, profile.id);
     res.json({ profile });
   } catch (err) {
     next(err);
@@ -206,6 +210,86 @@ function setAppearance(req, res, next) {
   }
 }
 
+// Same "can this person see the profile" rule used elsewhere.
+function isPublicProfile(profile) {
+  if (!profile) return false;
+  const owner = User.findById(profile.user_id);
+  return profile.status === 'approved' && profile.is_active === 1 && !!owner && !owner.is_blocked;
+}
+
+// ---------- favorites ----------
+
+function toggleFavorite(req, res, next) {
+  try {
+    const profile = Profile.findById(req.params.id);
+    if (!isPublicProfile(profile)) return res.status(404).json({ error: 'Анкета не найдена.' });
+    if (profile.user_id === req.user.id) {
+      return res.status(400).json({ error: 'Нельзя добавить свою анкету в избранное.' });
+    }
+    const favorited = Favorite.toggle(req.user.id, profile.id);
+    res.json({ favorited });
+  } catch (err) {
+    next(err);
+  }
+}
+
+function myFavorites(req, res, next) {
+  try {
+    res.json({ profiles: Favorite.listForUser(req.user.id) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------- "leave a request" (replaces the old order button) ----------
+// The buyer sends a short message; the creator sees it on his own profile
+// page and reaches out via the contact shown on the anketa. No money moves.
+
+const MAX_PENDING_REQUESTS_PER_BUYER = 10;
+
+function createRequest(req, res, next) {
+  try {
+    const profile = Profile.findById(req.params.id);
+    if (!isPublicProfile(profile)) return res.status(404).json({ error: 'Анкета не найдена.' });
+    if (profile.user_id === req.user.id) {
+      return res.status(400).json({ error: 'Нельзя оставить заявку на свою анкету.' });
+    }
+    if (ProfileRequest.existsFor(profile.id, req.user.id)) {
+      return res.status(409).json({ error: 'Ты уже оставлял заявку этому креатору по этой анкете.' });
+    }
+
+    const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+    if (message.length < 5 || message.length > 500) {
+      return res.status(400).json({ error: 'Опиши, что нужно: от 5 до 500 символов.' });
+    }
+
+    const open = db_requestCount(req.user.id);
+    if (open >= MAX_PENDING_REQUESTS_PER_BUYER) {
+      return res.status(429).json({ error: 'Слишком много заявок за раз. Попробуй позже.' });
+    }
+
+    const request = ProfileRequest.create(profile.id, req.user.id, message);
+    res.status(201).json({ request: { id: request.id } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Owner: requests received on one of his profiles.
+function listRequests(req, res, next) {
+  try {
+    const profile = Profile.findById(req.params.id);
+    if (!profile || profile.user_id !== req.user.id) {
+      return res.status(404).json({ error: 'Анкета не найдена.' });
+    }
+    const requests = ProfileRequest.listForProfile(profile.id);
+    ProfileRequest.markSeen(profile.id);
+    res.json({ requests });
+  } catch (err) {
+    next(err);
+  }
+}
+
 function myProfiles(req, res, next) {
   try {
     const profiles = Profile.listByUser(req.user.id);
@@ -215,4 +299,21 @@ function myProfiles(req, res, next) {
   }
 }
 
-module.exports = { list, getById, create, update, remove, setActive, setAppearance, myProfiles };
+function db_requestCount(buyerId) {
+  return db.prepare('SELECT COUNT(*) AS n FROM profile_requests WHERE buyer_id = ?').get(buyerId).n;
+}
+
+module.exports = {
+  list,
+  getById,
+  create,
+  update,
+  remove,
+  setActive,
+  setAppearance,
+  toggleFavorite,
+  myFavorites,
+  createRequest,
+  listRequests,
+  myProfiles,
+};

@@ -1,3 +1,19 @@
+const PF_TIERS = ['low', 'below_avg', 'avg', 'above_avg', 'high', 'excellent'];
+
+function tierBar(p) {
+  if (!p.tier) return '';
+  const idx = PF_TIERS.indexOf(p.tier);
+  if (idx === -1) return '';
+  const bars = PF_TIERS.map((t, i) => `<span class="${i <= idx ? 'on' : ''}"></span>`).join('');
+  return `
+    <div class="pf-tierbar-wrap">
+      <div class="pf-tierbar-label">Тир скилла</div>
+      <div class="pf-tierbar">${bars}</div>
+      <div class="pf-tierbar-name">${escapeHtml(p.tier_label)}</div>
+    </div>
+  `;
+}
+
 function statusLabel(status) {
   const map = { pending: 'На модерации', approved: 'Опубликовано', rejected: 'Отклонено' };
   return map[status] || status;
@@ -66,62 +82,97 @@ async function loadProfile() {
       )
       .join('');
 
-    const look = p.appearance || {};
-    const skinCss = `${look.bg_css || ''}${look.font_css || ''}${look.frame_css || ''}`;
-    const skinStyle = skinCss ? `${skinCss}padding:8px 0;margin:8px 12px;overflow:hidden;` : '';
+    const skinCss = `${(p.appearance && p.appearance.bg_css) || ''}${(p.appearance && p.appearance.font_css) || ''}`;
+    const frameCss = (p.appearance && p.appearance.frame_css) || '';
+
+    const isFav = !!p.is_favorited;
+    const favBtn =
+      user && !isOwner
+        ? `<button class="pf-icon-btn${isFav ? ' active' : ''}" id="fav-btn" title="В избранное" aria-label="В избранное">${isFav ? '♥' : '♡'}</button>`
+        : '';
 
     root.innerHTML = `
-      <div class="pf-skin" style="${escapeHtml(skinStyle)}">
-      <div class="profile-header container">
-        <div class="avatar-lg">${avatarContent}</div>
-        <div>
-          <h1 class="profile-name">${escapeHtml(p.name)}</h1>
-          ${p.title ? `<div style="font-size:16px;font-weight:600;color:var(--text-secondary);margin:2px 0 8px;">${escapeHtml(p.title)}</div>` : ''}
-          <div class="tag-row">${roleTags}${p.tier_label ? `<span class="tag">Скилл: ${escapeHtml(p.tier_label)}</span>` : ''}</div>
-          ${seesStatus ? `<span class="status-pill" style="margin-top:8px;display:inline-block;">${statusLabel(p.status)}${p.status === 'approved' && !p.is_active ? ' · REQ—OFF' : ''}</span>` : ''}
-          ${author}
+      <div class="pf-card" style="${escapeHtml(skinCss)}${escapeHtml(frameCss)}">
+        <div class="pf-top">
+          <div class="pf-top-left">
+            <div class="pf-avatar-frame">${avatarContent}</div>
+            <div>
+              <div class="pf-name-row"><h1 class="profile-name" style="margin:0;">${escapeHtml(p.name)}</h1></div>
+              ${p.title ? `<div style="font-size:16px;font-weight:600;color:var(--text-secondary);margin:2px 0 8px;">${escapeHtml(p.title)}</div>` : ''}
+              <div class="tag-row">${roleTags}</div>
+              ${
+                p.rating_count
+                  ? `<div class="pf-rating">★ ${p.rating_avg} <span class="text-muted" style="font-weight:400;">(${p.rating_count} отзывов)</span></div>`
+                  : ''
+              }
+              ${seesStatus ? `<span class="status-pill" style="margin-top:8px;display:inline-block;">${statusLabel(p.status)}${p.status === 'approved' && !p.is_active ? ' · REQ—OFF' : ''}</span>` : ''}
+              ${author}
+              ${tierBar(p)}
+            </div>
+          </div>
+          ${favBtn}
         </div>
-      </div>
-      ${isOwner ? `<div class="container">${ownerNotice(p)}</div>` : ''}
 
-      <div class="pf-layout container">
-        <div class="pf-left">
-          ${
-            p.description
-              ? `<div class="profile-block"><h3>Описание</h3><p style="white-space:pre-wrap;">${escapeHtml(p.description)}</p></div>`
-              : ''
-          }
-          ${
-            p.services_text || services
-              ? `<div class="profile-block"><h3>Услуги</h3>${
-                  p.services_text ? `<p style="white-space:pre-wrap;">${escapeHtml(p.services_text)}</p>` : ''
-                }${services ? `<ul>${services}</ul>` : ''}</div>`
-              : ''
-          }
-          ${
-            portfolio
-              ? `<div class="profile-block"><h3>Портфолио</h3><ul>${portfolio}</ul></div>`
-              : ''
-          }
-          ${tags ? `<div class="profile-block"><h3>Теги</h3><div class="tag-row">${tags}</div></div>` : ''}
-          <div class="profile-block">
-            <h3>Создано</h3>
-            <p class="text-muted">${new Date(p.created_at).toLocaleDateString('ru-RU')}</p>
+        ${isOwner ? ownerNotice(p) : ''}
+
+        <div class="pf-layout">
+          <div class="pf-left">
+            ${
+              p.description
+                ? `<div class="profile-block"><h3>Описание</h3><p style="white-space:pre-wrap;">${escapeHtml(p.description)}</p></div>`
+                : ''
+            }
+            ${
+              p.services_text || services
+                ? `<div class="profile-block"><h3>Услуги</h3>${
+                    p.services_text ? `<p style="white-space:pre-wrap;">${escapeHtml(p.services_text)}</p>` : ''
+                  }${services ? `<ul>${services}</ul>` : ''}</div>`
+                : ''
+            }
+            ${
+              portfolio
+                ? `<div class="profile-block"><h3>Портфолио</h3><ul>${portfolio}</ul></div>`
+                : ''
+            }
+            ${tags ? `<div class="profile-block"><h3>Теги</h3><div class="tag-row">${tags}</div></div>` : ''}
+            <div class="profile-block">
+              <h3>Создано</h3>
+              <p class="text-muted">${new Date(p.created_at).toLocaleDateString('ru-RU')}</p>
+            </div>
+          </div>
+
+          <div class="pf-right">
+            ${media ? `<div class="pf-gallery">${media}</div>` : ''}
+            <div class="sidebar-card" style="position:static;">
+              <div class="sidebar-price">${formatPrice(p.price_cents, p.currency)}</div>
+              <p class="text-muted" style="margin-top:0;">Контакт: ${escapeHtml(p.contact)}</p>
+              <div class="pf-actions" id="order-area"></div>
+            </div>
           </div>
         </div>
 
-        <div class="pf-right">
-          ${media ? `<div class="pf-gallery">${media}</div>` : ''}
-          <div class="sidebar-card" style="position:static;">
-            <div class="sidebar-price">${formatPrice(p.price_cents, p.currency)}</div>
-            <p class="text-muted" style="margin-top:0;">Контакт: ${escapeHtml(p.contact)}</p>
-            <div id="order-area"></div>
-          </div>
-        </div>
-      </div>
-      <div class="container" id="reviews-root" style="padding-bottom:32px;"></div>
+        <div id="reviews-root" style="padding-top:8px;"></div>
       </div>
     `;
+
+    const favBtnEl = document.getElementById('fav-btn');
+    if (favBtnEl) {
+      favBtnEl.addEventListener('click', async () => {
+        favBtnEl.disabled = true;
+        try {
+          const res = await api(`/profiles/${p.id}/favorite`, { method: 'POST', auth: true });
+          favBtnEl.textContent = res.favorited ? '♥' : '♡';
+          favBtnEl.classList.toggle('active', res.favorited);
+          if (typeof window.showToast === 'function') {
+            window.showToast(res.favorited ? 'Добавлено в избранное' : 'Убрано из избранного');
+          }
+        } catch (err) {
+          if (typeof window.showToast === 'function') window.showToast(err.message, 'error');
+        } finally {
+          favBtnEl.disabled = false;
+        }
+      });
+    }
 
     // Tap a photo to see it full size.
     root.querySelectorAll('img[data-zoom]').forEach((img) => {
@@ -134,7 +185,11 @@ async function loadProfile() {
       });
     });
 
-    if (isOwner) renderOwnerArea(p);
+    if (isOwner) {
+      renderOwnerArea(p);
+    } else {
+      renderRequestArea(p, user);
+    }
     loadReviews(p, user, isOwner);
   } catch (err) {
     root.innerHTML = `<div class="empty-state">Не удалось загрузить анкету: ${escapeHtml(err.message)}</div>`;
@@ -156,11 +211,13 @@ function renderOwnerArea(profile) {
         : ''
     }
     <button class="btn btn-block" id="delete-btn" style="margin-top:12px;">Удалить анкету</button>
+    <div id="requests-box" style="margin-top:16px;"></div>
     <div id="look-editor" style="margin-top:16px;"></div>
     <div id="owner-msg" class="form-msg"></div>
   `;
 
   renderLookEditor(profile);
+  renderRequestsBox(profile);
 
   const msg = document.getElementById('owner-msg');
 
@@ -195,6 +252,89 @@ function renderOwnerArea(profile) {
       setTimeout(() => {
         window.location.href = '/user.html';
       }, 600);
+    } catch (err) {
+      msg.className = 'form-msg error';
+      msg.textContent = err.message;
+      btn.disabled = false;
+    }
+  });
+}
+
+// Owner: requests received on this anketa (opening this view marks them seen).
+async function renderRequestsBox(profile) {
+  const box = document.getElementById('requests-box');
+  if (!box || profile.status !== 'approved') return;
+
+  let data;
+  try {
+    data = await api(`/profiles/${profile.id}/requests`, { auth: true });
+  } catch (err) {
+    return;
+  }
+  if (!data || !Array.isArray(data.requests) || !data.requests.length) return;
+
+  box.innerHTML = `
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-weight:700;margin-bottom:8px;">Заявки (${data.requests.length})</div>
+      ${data.requests
+        .map(
+          (r) => `
+        <div style="border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;">
+          <a href="/user.html?id=${r.buyer_id}" style="font-weight:600;">${escapeHtml(r.buyer_name)}</a>
+          <span class="text-muted" style="font-size:12px;">· ${escapeHtml(String(r.created_at).slice(0, 16))}</span>
+          <p style="white-space:pre-wrap;margin:6px 0 0;">${escapeHtml(r.message)}</p>
+        </div>`
+        )
+        .join('')}
+    </div>
+  `;
+}
+
+// ---------- "Оставить заявку" — the new mechanic that replaced "Заказать" ----------
+// The buyer writes what he needs; the creator sees it on his own anketa page
+// (requests received) and reaches out via the contact shown on it. Nothing is
+// paid or ordered automatically — it's just a structured "I'm interested".
+
+function renderRequestArea(profile, user) {
+  const area = document.getElementById('order-area');
+  if (!area) return;
+
+  if (!profile.status || profile.status !== 'approved' || !profile.is_active) {
+    return; // hidden/unpublished profiles don't take requests
+  }
+
+  if (!user) {
+    area.innerHTML = `<a class="btn btn-primary btn-block" href="/login.html">Войти, чтобы оставить заявку</a>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <button class="btn btn-primary btn-block" id="request-open">Оставить заявку</button>
+    <div id="request-form" style="display:none;margin-top:12px;">
+      <textarea id="request-text" rows="3" maxlength="500" placeholder="Что нужно сделать? От 5 символов"></textarea>
+      <button class="btn btn-primary btn-block" id="request-send" style="margin-top:8px;">Отправить креатору</button>
+    </div>
+    <div id="request-msg" class="form-msg"></div>
+  `;
+
+  document.getElementById('request-open').addEventListener('click', () => {
+    document.getElementById('request-open').style.display = 'none';
+    document.getElementById('request-form').style.display = 'block';
+  });
+
+  document.getElementById('request-send').addEventListener('click', async () => {
+    const msg = document.getElementById('request-msg');
+    msg.className = 'form-msg';
+    const btn = document.getElementById('request-send');
+    btn.disabled = true;
+    try {
+      await api(`/profiles/${profile.id}/requests`, {
+        method: 'POST',
+        auth: true,
+        body: { message: document.getElementById('request-text').value },
+      });
+      document.getElementById('request-form').innerHTML =
+        '<p class="text-muted" style="font-size:13px;">Заявка отправлена. Креатор увидит её в своей анкете и сам с тобой свяжется.</p>';
     } catch (err) {
       msg.className = 'form-msg error';
       msg.textContent = err.message;

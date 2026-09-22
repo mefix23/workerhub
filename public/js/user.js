@@ -123,9 +123,26 @@ async function loadUser() {
         <div><h2>${data.is_self ? 'Мои анкеты' : 'Анкеты'}</h2></div>
       </div>
       <div class="grid">${tiles}</div>
+
+      ${data.is_self ? '<div class="section-head" style="margin-top:32px;"><div><h2>Избранное</h2><p>Чужие анкеты, которые ты хочешь купить</p></div></div><div class="grid" id="favorites-grid"><div class="loading">Загрузка…</div></div>' : ''}
     `;
+
+    if (data.is_self) loadFavorites();
   } catch (err) {
     root.innerHTML = `<div class="empty-state">Профиль не найден: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function loadFavorites() {
+  const box = document.getElementById('favorites-grid');
+  if (!box) return;
+  try {
+    const { profiles } = await api('/profiles/favorites/mine', { auth: true });
+    box.innerHTML = profiles.length
+      ? profiles.map((p) => profileCard(p)).join('')
+      : '<div class="empty-state">Пока пусто. Жми ♡ на анкете, чтобы добавить сюда.</div>';
+  } catch (err) {
+    box.innerHTML = `<div class="empty-state">Не удалось загрузить избранное.</div>`;
   }
 }
 
