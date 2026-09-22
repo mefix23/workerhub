@@ -196,6 +196,31 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_warnings_user ON warnings(user_id);
 `);
 
+// Private chat between users (1:1 conversations).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS conversations (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_a     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_b     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (user_a, user_b),
+    CHECK (user_a < user_b)
+  );
+  CREATE INDEX IF NOT EXISTS idx_conv_a ON conversations(user_a);
+  CREATE INDEX IF NOT EXISTS idx_conv_b ON conversations(user_b);
+
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body            TEXT NOT NULL,
+    is_read         INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_chat_msgs_conv ON chat_messages(conversation_id);
+  CREATE INDEX IF NOT EXISTS idx_chat_msgs_read ON chat_messages(conversation_id, is_read);
+`);
+
 // Start saving snapshots of the database (only when BACKUP_* is configured).
 require('../utils/backup').start(db);
 

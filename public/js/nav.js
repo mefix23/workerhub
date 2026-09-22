@@ -45,6 +45,7 @@ function renderNav() {
           <a href="/collabs.html">Коллабы</a>
           <a href="/create.html">Создать анкету</a>
           <a href="/shop.html">Магазин</a>
+          ${user ? `<a href="/messages.html">Чаты<span id="nav-chat-badge" style="display:none;"></span></a>` : ''}
           <a href="/support.html">Помощь</a>
           ${isStaffUser(user) ? `<a href="/admin.html">Панель</a>` : ''}
           ${
@@ -71,7 +72,28 @@ function renderNav() {
   }
 }
 
+async function refreshChatBadge() {
+  if (!getToken()) return;
+  try {
+    const { unread_total } = await api('/chat/unread', { auth: true });
+    const el = document.getElementById('nav-chat-badge');
+    if (!el) return;
+    if (unread_total > 0) {
+      el.style.display = 'inline-flex';
+      el.textContent = unread_total > 99 ? '99+' : String(unread_total);
+      el.style.cssText =
+        'display:inline-flex;margin-left:6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;';
+    } else {
+      el.style.display = 'none';
+    }
+  } catch (err) {
+    /* ignore */
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   renderNav();
   refreshNavUser();
+  refreshChatBadge();
+  setInterval(refreshChatBadge, 20000);
 });

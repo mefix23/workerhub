@@ -51,17 +51,40 @@
     padding-top: 28px;
     align-items: start;
   }
-  .pf-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
-  .pf-gallery .pf-item:first-child:nth-last-child(odd) { grid-column: 1 / -1; }
-  .pf-gallery .pf-item:only-child { grid-column: 1 / -1; }
-  .pf-item img { width: 100%; height: auto; display: block; border-radius: var(--radius-md); cursor: zoom-in; }
-  .pf-video {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-    min-height: 96px; padding: 16px; text-align: center; font-weight: 600;
-    border: 1px solid var(--border-strong); border-radius: var(--radius-md);
-    background: var(--bg-card);
+  .pf-gallery {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: start;
   }
-  .pf-video small { font-weight: 400; font-size: 12px; color: var(--text-muted); word-break: break-all; }
+  /* Only stretch a lone IMAGE to full width — never stretch video link cards */
+  .pf-gallery .pf-item.pf-img:only-child,
+  .pf-gallery .pf-item.pf-img:first-child:nth-last-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .pf-item img {
+    width: 100%; height: auto; display: block;
+    border-radius: var(--radius-md); cursor: zoom-in;
+  }
+  .pf-embed {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    border-radius: var(--radius-md); overflow: hidden;
+    border: 1px solid var(--border-strong); background: #000;
+  }
+  .pf-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .pf-video {
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+    gap: 4px; min-height: 0; padding: 12px 14px;
+    text-align: left; font-weight: 600; font-size: 14px;
+    border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+    background: var(--bg-elevated); transition: border-color 0.2s, background 0.2s;
+  }
+  .pf-video:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+  .pf-video small {
+    font-weight: 400; font-size: 11px; color: var(--text-muted);
+    word-break: break-all; line-height: 1.3; max-height: 2.6em; overflow: hidden;
+  }
   .pf-lightbox {
     position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
     background: rgba(0, 0, 0, 0.88); cursor: zoom-out; padding: 16px;

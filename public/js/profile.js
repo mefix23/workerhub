@@ -1,5 +1,29 @@
 const PF_TIERS = ['low', 'below_avg', 'avg', 'above_avg', 'high', 'excellent'];
 
+// Extract YouTube video id from common URL forms (youtu.be, watch?v=, embed/, shorts/).
+function youtubeEmbedId(url) {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    const u = new URL(url.trim());
+    const host = u.hostname.replace(/^www\./, '');
+    if (host === 'youtu.be') {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      return id && /^[\w-]{6,}$/.test(id) ? id : null;
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'youtube-nocookie.com') {
+      if (u.pathname.startsWith('/embed/') || u.pathname.startsWith('/shorts/')) {
+        const id = u.pathname.split('/')[2];
+        return id && /^[\w-]{6,}$/.test(id) ? id : null;
+      }
+      const v = u.searchParams.get('v');
+      return v && /^[\w-]{6,}$/.test(v) ? v : null;
+    }
+  } catch (e) {
+    /* ignore */
+  }
+  return null;
+}
+
 function tierBar(p) {
   if (!p.tier) return '';
   const idx = PF_TIERS.indexOf(p.tier);
@@ -75,11 +99,16 @@ async function loadProfile() {
       : '';
 
     const media = (p.media || [])
-      .map((m) =>
-        m.type === 'image'
-          ? `<div class="pf-item"><img src="${escapeHtml(m.url)}" alt="Работа" data-zoom="1" /></div>`
-          : `<div class="pf-item"><a class="pf-video" href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer"><span>▶ Смотреть видео</span><small>${escapeHtml(m.url)}</small></a></div>`
-      )
+      .map((m) => {
+        if (m.type === 'image') {
+          return `<div class="pf-item pf-img"><img src="${escapeHtml(m.url)}" alt="Работа" data-zoom="1" /></div>`;
+        }
+        const yt = youtubeEmbedId(m.url);
+        if (yt) {
+          return `<div class="pf-item pf-vid"><div class="pf-embed"><iframe src="https://www.youtube.com/embed/${escapeHtml(yt)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy" title="YouTube"></iframe></div></div>`;
+        }
+        return `<div class="pf-item pf-vid"><a class="pf-video" href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer"><span>▶ Смотреть видео</span><small>${escapeHtml(m.url)}</small></a></div>`;
+      })
       .join('');
 
     const skinCss = `${(p.appearance && p.appearance.bg_css) || ''}${(p.appearance && p.appearance.font_css) || ''}`;
@@ -280,14 +309,36 @@ async function renderRequestsBox(profile) {
         .map(
           (r) => `
         <div style="border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;">
-          <a href="/user.html?id=${r.buyer_id}" style="font-weight:600;">${escapeHtml(r.buyer_name)}</a>
-          <span class="text-muted" style="font-size:12px;">· ${escapeHtml(String(r.created_at).slice(0, 16))}</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div>
+              <a href="/user.html?id=${r.buyer_id}" style="font-weight:600;">${escapeHtml(r.buyer_name)}</a>
+              <span class="text-muted" style="font-size:12px;">· ${escapeHtml(String(r.created_at).slice(0, 16))}</span>
+            </div>
+            <button class="btn btn-sm" data-chat-user="${r.buyer_id}">Чат</button>
+          </div>
           <p style="white-space:pre-wrap;margin:6px 0 0;">${escapeHtml(r.message)}</p>
         </div>`
         )
         .join('')}
     </div>
   `;
+
+  box.querySelectorAll('[data-chat-user]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const data = await api('/chat/open', {
+          method: 'POST',
+          auth: true,
+          body: { userId: Number(btn.getAttribute('data-chat-user')) },
+        });
+        window.location.href = `/messages.html?id=${data.conversation.id}`;
+      } catch (err) {
+        window.alert(err.message);
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 // ---------- "Оставить заявку" — the new mechanic that replaced "Заказать" ----------
@@ -304,18 +355,43 @@ function renderRequestArea(profile, user) {
   }
 
   if (!user) {
-    area.innerHTML = `<a class="btn btn-primary btn-block" href="/login.html">Войти, чтобы оставить заявку</a>`;
+    area.innerHTML = `<a class="btn btn-primary btn-block" href="/login.html">Войти, чтобы написать</a>`;
     return;
   }
 
+  const ownerId = profile.user_id || (profile.owner && profile.owner.id);
   area.innerHTML = `
-    <button class="btn btn-primary btn-block" id="request-open">Оставить заявку</button>
+    <button class="btn btn-primary btn-block" id="chat-open-btn">Написать в чат</button>
+    <button class="btn btn-block" id="request-open" style="margin-top:8px;">Оставить заявку</button>
     <div id="request-form" style="display:none;margin-top:12px;">
       <textarea id="request-text" rows="3" maxlength="500" placeholder="Что нужно сделать? От 5 символов"></textarea>
       <button class="btn btn-primary btn-block" id="request-send" style="margin-top:8px;">Отправить креатору</button>
     </div>
     <div id="request-msg" class="form-msg"></div>
   `;
+
+  document.getElementById('chat-open-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('chat-open-btn');
+    const msg = document.getElementById('request-msg');
+    if (!ownerId) {
+      msg.className = 'form-msg error';
+      msg.textContent = 'Не удалось найти автора анкеты.';
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const data = await api('/chat/open', {
+        method: 'POST',
+        auth: true,
+        body: { userId: ownerId },
+      });
+      window.location.href = `/messages.html?id=${data.conversation.id}`;
+    } catch (err) {
+      msg.className = 'form-msg error';
+      msg.textContent = err.message;
+      btn.disabled = false;
+    }
+  });
 
   document.getElementById('request-open').addEventListener('click', () => {
     document.getElementById('request-open').style.display = 'none';

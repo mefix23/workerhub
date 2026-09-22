@@ -11,6 +11,8 @@ const ITEMS = [
     css: 'background:linear-gradient(135deg,#3b0a1e,#9f1239 50%,#f59e0b);' },
   { id: 'bg_matrix', type: 'bg', name: 'Матрица', price: 150,
     css: 'background:linear-gradient(180deg,#020a04,#052e16);' },
+  { id: 'bg_king', type: 'bg', name: 'Король', price: 1488,
+    css: "background:#0a0a0c url('/assets/bg-king.jpg') center/cover no-repeat;" },
   // fonts (system fonts only, nothing is downloaded)
   { id: 'font_mono', type: 'font', name: 'Моно', price: 50,
     css: "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace;" },
