@@ -42,10 +42,12 @@ function renderNav() {
         <a class="logo" href="/">WORKERHUB</a>
         <div class="nav-links">
           <a href="/catalog.html">Каталог</a>
+          <a href="/feed.html">Лента</a>
           <a href="/collabs.html">Коллабы</a>
           <a href="/create.html">Создать анкету</a>
           <a href="/shop.html">Магазин</a>
           ${user ? `<a href="/messages.html">Чаты<span id="nav-chat-badge" style="display:none;"></span></a>` : ''}
+          ${user ? `<a href="/user.html" title="Уведомления">🔔<span id="nav-notif-badge" style="display:none;"></span></a>` : ''}
           <a href="/support.html">Помощь</a>
           ${isStaffUser(user) ? `<a href="/admin.html">Панель</a>` : ''}
           ${
@@ -72,20 +74,32 @@ function renderNav() {
   }
 }
 
+function styleBadge(el, n) {
+  if (!el) return;
+  if (n > 0) {
+    el.style.cssText =
+      'display:inline-flex;margin-left:4px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;align-items:center;justify-content:center;';
+    el.textContent = n > 99 ? '99+' : String(n);
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 async function refreshChatBadge() {
   if (!getToken()) return;
   try {
     const { unread_total } = await api('/chat/unread', { auth: true });
-    const el = document.getElementById('nav-chat-badge');
-    if (!el) return;
-    if (unread_total > 0) {
-      el.style.display = 'inline-flex';
-      el.textContent = unread_total > 99 ? '99+' : String(unread_total);
-      el.style.cssText =
-        'display:inline-flex;margin-left:6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;';
-    } else {
-      el.style.display = 'none';
-    }
+    styleBadge(document.getElementById('nav-chat-badge'), unread_total || 0);
+  } catch (err) {
+    /* ignore */
+  }
+}
+
+async function refreshNotifBadge() {
+  if (!getToken()) return;
+  try {
+    const { unread } = await api('/notifications/unread', { auth: true });
+    styleBadge(document.getElementById('nav-notif-badge'), unread || 0);
   } catch (err) {
     /* ignore */
   }
@@ -95,5 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
   renderNav();
   refreshNavUser();
   refreshChatBadge();
-  setInterval(refreshChatBadge, 20000);
+  refreshNotifBadge();
+  setInterval(() => {
+    refreshChatBadge();
+    refreshNotifBadge();
+  }, 20000);
 });

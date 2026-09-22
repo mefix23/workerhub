@@ -25,6 +25,8 @@ const supportRoutes = require('./routes/support');
 const reviewRoutes = require('./routes/reviews');
 const collabRoutes = require('./routes/collabs');
 const chatRoutes = require('./routes/chat');
+const workRoutes = require('./routes/works');
+const notificationRoutes = require('./routes/notifications');
 const metaRoutes = require('./routes/meta');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
@@ -64,6 +66,8 @@ app.use('/api/support', supportRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/collabs', collabRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/works', workRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api', metaRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

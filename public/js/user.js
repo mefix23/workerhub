@@ -108,16 +108,36 @@ async function loadUser() {
             На сайте с ${new Date(u.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('ru-RU')}
             ${data.is_self && u.email ? ' · ' + escapeHtml(u.email) : ''}
           </div>
-          ${data.is_self ? '<div style="margin-top:14px;"><a class="btn btn-primary btn-sm" href="/create.html">Создать анкету</a></div>' : ''}
+          ${
+            data.is_self
+              ? `<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+                   <a class="btn btn-primary btn-sm" href="/create.html">Создать анкету</a>
+                   <button class="btn btn-sm" id="btn-upload-work">Выложить видео</button>
+                   <a class="btn btn-sm" href="/feed.html">Лента ворков</a>
+                 </div>`
+              : `<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+                   <button class="btn btn-sm btn-primary" id="btn-chat-user" data-uid="${u.id}">Написать</button>
+                 </div>`
+          }
         </div>
       </div>
 
       ${
         data.is_self
-          ? `<div class="profile-block" style="margin-top:24px;"><h3>Монеты</h3><p style="margin:0;"><b style="color:#fbbf24;">🪙 ${Number(u.coins) || 0}</b> · <a href="/shop.html">Магазин</a> · <a href="/faq.html">Как получить монеты</a></p></div>`
+          ? `<div class="profile-block" style="margin-top:24px;"><h3>Монеты</h3><p style="margin:0;"><b style="color:#fbbf24;">🪙 ${Number(u.coins) || 0}</b> · <a href="/shop.html">Магазин</a> · <a href="/faq.html">Как получить монеты</a></p></div>
+             <div class="profile-block" style="margin-top:16px;" id="notif-block"><h3>Уведомления</h3><div id="notif-list" class="text-muted">Загрузка…</div></div>`
           : ''
       }
       ${showWarns ? warnBlock({ ...data, user: u }) : ''}
+
+      <div class="section-head" style="margin-top:32px;">
+        <div>
+          <h2>Видео</h2>
+          <p>${data.is_self ? 'Твои опубликованные ворки' : 'Ворки пользователя'}</p>
+        </div>
+        ${data.is_self ? '<button class="btn btn-sm" id="btn-upload-work-2">Выложить видео</button>' : ''}
+      </div>
+      <div class="works-grid" id="works-grid"><div class="loading">Загрузка…</div></div>
 
       <div class="section-head" style="margin-top:32px;">
         <div><h2>${data.is_self ? 'Мои анкеты' : 'Анкеты'}</h2></div>
@@ -127,9 +147,177 @@ async function loadUser() {
       ${data.is_self ? '<div class="section-head" style="margin-top:32px;"><div><h2>Избранное</h2><p>Чужие анкеты, которые ты хочешь купить</p></div></div><div class="grid" id="favorites-grid"><div class="loading">Загрузка…</div></div>' : ''}
     `;
 
-    if (data.is_self) loadFavorites();
+    loadWorks(u.id, data.is_self);
+    if (data.is_self) {
+      loadFavorites();
+      loadNotifications();
+      setupUploadModal();
+    }
+    const chatBtn = document.getElementById('btn-chat-user');
+    if (chatBtn) {
+      chatBtn.addEventListener('click', async () => {
+        if (!getToken()) {
+          window.location.href = '/login.html';
+          return;
+        }
+        chatBtn.disabled = true;
+        try {
+          const res = await api('/chat/open', {
+            method: 'POST',
+            auth: true,
+            body: { userId: Number(chatBtn.getAttribute('data-uid')) },
+          });
+          window.location.href = `/messages.html?id=${res.conversation.id}`;
+        } catch (err) {
+          window.alert(err.message);
+          chatBtn.disabled = false;
+        }
+      });
+    }
   } catch (err) {
     root.innerHTML = `<div class="empty-state">Профиль не найден: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function youtubeThumb(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+    let id = null;
+    if (host === 'youtu.be') id = u.pathname.split('/').filter(Boolean)[0];
+    else if (host.includes('youtube')) id = u.searchParams.get('v') || u.pathname.split('/')[2];
+    if (id && /^[\w-]{6,}$/.test(id)) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+  } catch (e) {}
+  return null;
+}
+
+async function loadWorks(userId, isSelf) {
+  const box = document.getElementById('works-grid');
+  if (!box) return;
+  try {
+    const { works } = await api(`/works/user/${userId}`, { auth: !!getToken() });
+    if (!works.length) {
+      box.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">${
+        isSelf ? 'Пока нет видео. Нажми «Выложить видео».' : 'Видео пока нет.'
+      }</div>`;
+      return;
+    }
+    box.innerHTML = works
+      .map((w) => {
+        const thumb = youtubeThumb(w.video_url);
+        const media = thumb
+          ? `<img src="${escapeHtml(thumb)}" alt="" />`
+          : `<video src="${escapeHtml(w.video_url)}" muted preload="metadata"></video>`;
+        return `
+          <a class="work-tile" href="/feed.html#${w.id}" title="${escapeHtml(w.caption || '')}">
+            ${media}
+            <div class="work-tile-meta">♥ ${w.likes_count || 0} · 💬 ${w.comments_count || 0}</div>
+          </a>`;
+      })
+      .join('');
+  } catch (err) {
+    box.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">Не удалось загрузить видео.</div>`;
+  }
+}
+
+function setupUploadModal() {
+  const modal = document.getElementById('upload-modal');
+  if (!modal) return;
+  const open = () => modal.classList.add('open');
+  const close = () => modal.classList.remove('open');
+  ['btn-upload-work', 'btn-upload-work-2'].forEach((id) => {
+    const b = document.getElementById(id);
+    if (b) b.addEventListener('click', open);
+  });
+  document.getElementById('upload-cancel').addEventListener('click', close);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) close();
+  });
+
+  document.getElementById('upload-send').addEventListener('click', async () => {
+    const msg = document.getElementById('upload-msg');
+    const fileInput = document.getElementById('work-file');
+    const urlInput = document.getElementById('work-url');
+    const caption = document.getElementById('work-caption').value.trim();
+    const file = fileInput.files && fileInput.files[0];
+    const url = (urlInput.value || '').trim();
+    msg.className = 'form-msg';
+    msg.textContent = '';
+
+    if (!file && !url) {
+      msg.className = 'form-msg error';
+      msg.textContent = 'Выбери файл или вставь ссылку.';
+      return;
+    }
+    if (file && file.size > 40 * 1024 * 1024) {
+      msg.className = 'form-msg error';
+      msg.textContent = 'Файл слишком большой (макс. 40 МБ).';
+      return;
+    }
+
+    const btn = document.getElementById('upload-send');
+    btn.disabled = true;
+    try {
+      let work;
+      if (file) {
+        const fd = new FormData();
+        fd.append('video', file);
+        fd.append('caption', caption);
+        const token = getToken();
+        const res = await fetch('/api/works', {
+          method: 'POST',
+          headers: token ? { Authorization: 'Bearer ' + token } : {},
+          body: fd,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Ошибка загрузки');
+        work = data.work;
+      } else {
+        const data = await api('/works', {
+          method: 'POST',
+          auth: true,
+          body: { videoUrl: url, caption },
+        });
+        work = data.work;
+      }
+      msg.className = 'form-msg success';
+      msg.textContent = 'Опубликовано!';
+      setTimeout(() => {
+        close();
+        window.location.reload();
+      }, 500);
+    } catch (err) {
+      msg.className = 'form-msg error';
+      msg.textContent = err.message;
+      btn.disabled = false;
+    }
+  });
+}
+
+async function loadNotifications() {
+  const box = document.getElementById('notif-list');
+  if (!box) return;
+  try {
+    const data = await api('/notifications', { auth: true });
+    if (!data.notifications.length) {
+      box.innerHTML = '<p class="text-muted" style="margin:0;">Пока нет уведомлений.</p>';
+      return;
+    }
+    box.innerHTML = data.notifications
+      .slice(0, 15)
+      .map(
+        (n) => `
+      <div class="notif-item${n.is_read ? '' : ' unread'}">
+        ${escapeHtml(n.body)}
+        <div class="text-muted" style="font-size:12px;margin-top:2px;">${escapeHtml(String(n.created_at).slice(0, 16))}
+          ${n.work_id ? ` · <a href="/feed.html#${n.work_id}">смотреть</a>` : ''}
+        </div>
+      </div>`
+      )
+      .join('');
+    await api('/notifications/read', { method: 'POST', auth: true, body: {} });
+  } catch (err) {
+    box.innerHTML = '<p class="text-muted">Не удалось загрузить уведомления.</p>';
   }
 }
 

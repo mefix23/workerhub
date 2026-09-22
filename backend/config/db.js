@@ -221,6 +221,52 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chat_msgs_read ON chat_messages(conversation_id, is_read);
 `);
 
+
+// Works feed (TikTok-style vertical video posts).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS works (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    caption     TEXT NOT NULL DEFAULT '',
+    video_url   TEXT NOT NULL,
+    source      TEXT NOT NULL DEFAULT 'upload' CHECK (source IN ('upload', 'url')),
+    mime        TEXT,
+    size_bytes  INTEGER,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_works_user ON works(user_id);
+  CREATE INDEX IF NOT EXISTS idx_works_created ON works(created_at);
+
+  CREATE TABLE IF NOT EXISTS work_likes (
+    work_id    INTEGER NOT NULL REFERENCES works(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (work_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_work_likes_user ON work_likes(user_id);
+
+  CREATE TABLE IF NOT EXISTS work_comments (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    work_id    INTEGER NOT NULL REFERENCES works(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_work_comments_work ON work_comments(work_id);
+
+  CREATE TABLE IF NOT EXISTS notifications (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type       TEXT NOT NULL,
+    actor_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    work_id    INTEGER REFERENCES works(id) ON DELETE CASCADE,
+    body       TEXT NOT NULL,
+    is_read    INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, is_read);
+`);
+
 // Start saving snapshots of the database (only when BACKUP_* is configured).
 require('../utils/backup').start(db);
 
