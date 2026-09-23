@@ -4,9 +4,6 @@ function isStaffUser(u) {
 
 let navRefreshed = false;
 
-// Re-checks the saved login with the server, so the menu always shows the
-// current role, and a stale login (e.g. after the database was reset) is
-// cleared instead of causing "Invalid session" errors later.
 async function refreshNavUser() {
   if (navRefreshed || !getToken()) return;
   navRefreshed = true;
@@ -42,19 +39,20 @@ function renderNav() {
         <a class="logo" href="/">WORKERHUB</a>
         <div class="nav-links">
           <a href="/catalog.html">Каталог</a>
-          <a href="/feed.html">Лента</a>
           <a href="/collabs.html">Коллабы</a>
-          <a href="/create.html">Создать анкету</a>
-          <a href="/shop.html">Магазин</a>
-          ${user ? `<a href="/messages.html">Чаты<span id="nav-chat-badge" style="display:none;"></span></a>` : ''}
-          ${user ? `<a href="/user.html" title="Уведомления">🔔<span id="nav-notif-badge" style="display:none;"></span></a>` : ''}
-          <a href="/support.html">Помощь</a>
+          <a href="/lobby.html">Общий чат</a>
+          ${user ? `<a href="/messages.html">Личные<span id="nav-chat-badge" style="display:none;"></span></a>` : ''}
           ${isStaffUser(user) ? `<a href="/admin.html">Панель</a>` : ''}
           ${
             user
               ? `<div class="nav-user">
-                   <a href="/shop.html" title="Монеты" style="font-weight:600;">🪙 ${Number(user.coins) || 0}</a>
-                   <a class="text-muted" href="/user.html">${escapeHtml(user.username)}</a>
+                   <a href="/user.html" class="nav-profile-pill" title="Профиль">
+                     <span class="nav-avatar">${escapeHtml((user.username || '?').slice(0, 1).toUpperCase())}</span>
+                     <span class="nav-profile-meta">
+                       <span class="nav-name">${escapeHtml(user.username)}</span>
+                       <span class="nav-coins">🪙 ${Number(user.coins) || 0}</span>
+                     </span>
+                   </a>
                    <button class="btn btn-sm btn-ghost" id="nav-logout">Выйти</button>
                  </div>`
               : `<a href="/login.html">Войти</a>
@@ -90,28 +88,12 @@ async function refreshChatBadge() {
   try {
     const { unread_total } = await api('/chat/unread', { auth: true });
     styleBadge(document.getElementById('nav-chat-badge'), unread_total || 0);
-  } catch (err) {
-    /* ignore */
-  }
-}
-
-async function refreshNotifBadge() {
-  if (!getToken()) return;
-  try {
-    const { unread } = await api('/notifications/unread', { auth: true });
-    styleBadge(document.getElementById('nav-notif-badge'), unread || 0);
-  } catch (err) {
-    /* ignore */
-  }
+  } catch (err) {}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   renderNav();
   refreshNavUser();
   refreshChatBadge();
-  refreshNotifBadge();
-  setInterval(() => {
-    refreshChatBadge();
-    refreshNotifBadge();
-  }, 20000);
+  setInterval(refreshChatBadge, 20000);
 });

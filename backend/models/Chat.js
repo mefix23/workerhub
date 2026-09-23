@@ -128,4 +128,48 @@ const Chat = {
   },
 };
 
+
+// ---- Global lobby (one room for all users) ----
+Chat.lobbyList = function (limit = 80, afterId = 0) {
+  if (afterId) {
+    return db
+      .prepare(
+        `SELECT m.id, m.user_id, m.body, m.created_at, u.username AS author_name
+         FROM lobby_messages m JOIN users u ON u.id = m.user_id
+         WHERE m.id > ?
+         ORDER BY m.id ASC
+         LIMIT ?`
+      )
+      .all(afterId, limit);
+  }
+  return db
+    .prepare(
+      `SELECT m.id, m.user_id, m.body, m.created_at, u.username AS author_name
+       FROM lobby_messages m JOIN users u ON u.id = m.user_id
+       ORDER BY m.id DESC
+       LIMIT ?`
+    )
+    .all(limit)
+    .reverse();
+};
+
+Chat.lobbySend = function (userId, body) {
+  const text = String(body || '').trim();
+  if (text.length < 1 || text.length > 500) {
+    const err = new Error('Сообщение: от 1 до 500 символов.');
+    err.status = 400;
+    throw err;
+  }
+  const info = db
+    .prepare('INSERT INTO lobby_messages (user_id, body) VALUES (?, ?)')
+    .run(userId, text);
+  return db
+    .prepare(
+      `SELECT m.id, m.user_id, m.body, m.created_at, u.username AS author_name
+       FROM lobby_messages m JOIN users u ON u.id = m.user_id
+       WHERE m.id = ?`
+    )
+    .get(info.lastInsertRowid);
+};
+
 module.exports = Chat;

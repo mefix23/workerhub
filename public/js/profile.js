@@ -498,21 +498,21 @@ async function loadReviews(profile, user, isOwner) {
   const list = reviews
     .map(
       (r) => `
-      <div class="profile-block" style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-          <div>
-            <b style="letter-spacing:1px;color:#fbbf24;">${starsText(r.rating)}</b>
-            <a href="/user.html?id=${r.author_id}" style="font-weight:600;margin-left:6px;">${escapeHtml(r.author_name)}</a>
+      <article class="review-card">
+        <div class="review-card-top">
+          <div class="review-card-who">
+            <span class="review-stars">${starsText(r.rating)}</span>
+            <a class="review-author" href="/user.html?id=${r.author_id}">${escapeHtml(r.author_name)}</a>
           </div>
-          <span class="text-muted" style="font-size:12.5px;">${escapeHtml(String(r.created_at).slice(0, 10))}</span>
+          <time class="review-date">${escapeHtml(String(r.created_at).slice(0, 10))}</time>
         </div>
-        <p style="white-space:pre-wrap;margin:6px 0 0;">${escapeHtml(r.text)}</p>
+        <p class="review-text">${escapeHtml(r.text)}</p>
         ${
           user && (user.id === r.author_id || staff)
-            ? `<button class="btn btn-sm btn-ghost" data-del-review="${r.id}" style="margin-top:8px;">Удалить</button>`
+            ? `<button class="btn btn-sm btn-ghost review-del" data-del-review="${r.id}">Удалить</button>`
             : ''
         }
-      </div>`
+      </article>`
     )
     .join('');
 
@@ -531,36 +531,44 @@ async function loadReviews(profile, user, isOwner) {
       `<button class="btn btn-sm btn-ghost" data-del-review="${mine.id}" style="margin-top:10px;">Удалить и написать заново</button>`;
   } else if (!mine) {
     form = `
-      <div class="profile-block">
-        <h3>Оставить отзыв</h3>
-        <div id="star-pick" style="font-size:28px;letter-spacing:4px;cursor:pointer;color:#fbbf24;user-select:none;">
-          ${[1, 2, 3, 4, 5].map((n) => `<span data-star="${n}">☆</span>`).join('')}
+      <div class="review-form">
+        <div class="review-form-title">Оставить отзыв</div>
+        <p class="review-form-hint">После модерации отзыв появится здесь</p>
+        <div id="star-pick" class="review-stars-pick">
+          ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="review-star-btn" data-star="${n}" aria-label="${n}">☆</button>`).join('')}
         </div>
-        <textarea id="review-text" rows="3" maxlength="500" placeholder="Как всё прошло? От 10 символов" style="width:100%;margin-top:10px;"></textarea>
-        <button class="btn btn-primary" id="review-send" style="margin-top:10px;">Отправить на модерацию</button>
+        <textarea id="review-text" class="review-textarea" rows="3" maxlength="500" placeholder="Как всё прошло? От 10 символов"></textarea>
+        <button class="btn btn-primary" id="review-send">Отправить на модерацию</button>
         <div id="review-msg" class="form-msg"></div>
       </div>`;
   }
 
   box.innerHTML = `
-    <div class="section-head" style="margin-top:8px;">
-      <div>
-        <h2>Отзывы</h2>
-        <p>${
-          summary.count
-            ? `<span style="color:#fbbf24;font-weight:700;">★ ${summary.avg}</span> · ${summary.count} шт.`
-            : 'Пока нет отзывов'
-        }</p>
+    <div class="reviews-section">
+      <div class="reviews-head">
+        <div>
+          <h2 class="reviews-title">Отзывы</h2>
+          <p class="reviews-sub">${
+            summary.count
+              ? `<span class="reviews-avg">★ ${summary.avg}</span> · ${summary.count} ${summary.count === 1 ? 'отзыв' : 'отзывов'}`
+              : 'Пока нет отзывов — будь первым'
+          }</p>
+        </div>
       </div>
+      <div class="reviews-list">${list || (summary.count ? '' : '')}</div>
+      ${form}
     </div>
-    ${list || ''}
-    ${form}
   `;
 
   // star picker
   let rating = 0;
-  const stars = box.querySelectorAll('#star-pick span');
-  const paint = () => stars.forEach((s) => (s.textContent = Number(s.dataset.star) <= rating ? '★' : '☆'));
+  const stars = box.querySelectorAll('#star-pick [data-star]');
+  const paint = () =>
+    stars.forEach((s) => {
+      const on = Number(s.dataset.star) <= rating;
+      s.textContent = on ? '★' : '☆';
+      s.classList.toggle('on', on);
+    });
   stars.forEach((s) =>
     s.addEventListener('click', () => {
       rating = Number(s.dataset.star);

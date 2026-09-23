@@ -270,4 +270,16 @@ db.exec(`
 // Start saving snapshots of the database (only when BACKUP_* is configured).
 require('../utils/backup').start(db);
 
+
+// Global lobby chat — one room for everyone.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS lobby_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_lobby_created ON lobby_messages(id);
+`);
+
 module.exports = db;

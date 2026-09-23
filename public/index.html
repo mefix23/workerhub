@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>WORKERHUB — найди человека для своей задачи</title>
+<title>WORKERHUB — каталог креаторов</title>
 <link rel="stylesheet" href="/css/style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,39 +12,64 @@
 <body>
 <div id="nav-root"></div>
 
-<section class="hero hero-animate">
+<section class="hero hero-animate hero-v2">
   <div class="hero-bg">
     <div class="hero-orb hero-orb-1"></div>
     <div class="hero-orb hero-orb-2"></div>
   </div>
   <div class="container">
-    <h1>Найди человека<br />для своей задачи.</h1>
-    <p>WORKERHUB — минималистичный каталог креаторов: GP, deco, host, playtest и music makers. Найди нужного человека и договорись напрямую.</p>
+    <p class="hero-kicker">Geometry Dash · креаторы · заказы</p>
+    <h1>Каталог людей,<br />которые делают уровни.</h1>
+    <p class="hero-lead">GP, deco, host, playtest, music — найди нужного человека и договорись напрямую. Без лишнего шума.</p>
+    <form id="hero-search-form" class="search-bar hero-search">
+      <input type="text" id="hero-search-input" placeholder="Имя, роль, тег…" autocomplete="off" />
+      <button type="submit" class="btn btn-primary">Найти</button>
+    </form>
     <div class="hero-actions">
-      <a href="/catalog.html" class="btn btn-primary">Смотреть каталог</a>
-      <a href="/create.html" class="btn">Создать анкету</a>
-      <a href="/feed.html" class="btn">Лента ворков</a>
+      <a href="/catalog.html" class="btn btn-primary">Открыть каталог</a>
+      <a href="/lobby.html" class="btn">Общий чат</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><span class="hero-stat-n" id="stat-profiles">—</span><span class="hero-stat-l">в каталоге</span></div>
+      <div class="hero-stat"><span class="hero-stat-n">5</span><span class="hero-stat-l">ролей</span></div>
+      <div class="hero-stat"><span class="hero-stat-n">чат</span><span class="hero-stat-l">для всех</span></div>
     </div>
   </div>
 </section>
 
 <section class="section">
   <div class="container">
-    <form id="hero-search-form" class="search-bar">
-      <input type="text" id="hero-search-input" placeholder="Найти креатора: имя, роль, тег…" />
-      <button type="submit" class="btn btn-primary">Искать</button>
-    </form>
-
     <div class="section-head">
       <div>
-        <h2>Недавно добавленные</h2>
-        <p>Свежие анкеты креаторов на платформе</p>
+        <h2>Свежие анкеты</h2>
+        <p>Недавно опубликованные креаторы</p>
       </div>
       <a href="/catalog.html" class="btn btn-sm">Весь каталог →</a>
     </div>
-
     <div class="grid" id="featured-grid">
       <div class="loading">Загрузка…</div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-tight">
+  <div class="container">
+    <div class="home-strip">
+      <a class="home-tile" href="/collabs.html">
+        <span class="home-tile-ico">🧩</span>
+        <span class="home-tile-t">Коллабы</span>
+        <span class="home-tile-d">GP и deco по стадиям</span>
+      </a>
+      <a class="home-tile" href="/lobby.html">
+        <span class="home-tile-ico">💬</span>
+        <span class="home-tile-t">Общий чат</span>
+        <span class="home-tile-d">Живое общение всех</span>
+      </a>
+      <a class="home-tile" href="/user.html">
+        <span class="home-tile-ico">👤</span>
+        <span class="home-tile-t">Профиль</span>
+        <span class="home-tile-d">Анкеты, магазин, монеты</span>
+      </a>
     </div>
   </div>
 </section>

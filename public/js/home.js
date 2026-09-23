@@ -4,8 +4,11 @@ async function loadFeatured() {
 
   try {
     const { profiles } = await api('/profiles?limit=6');
+    const stat = document.getElementById('stat-profiles');
+    if (stat) stat.textContent = profiles.length >= 6 ? '6+' : String(profiles.length);
+
     if (!profiles.length) {
-      grid.innerHTML = `<div class="empty-state">Пока нет анкет. Будь первым — <a href="/create.html">создай свою</a>.</div>`;
+      grid.innerHTML = `<div class="empty-state">Пока нет анкет. Зайди в <a href="/user.html">профиль</a> и создай первую.</div>`;
       return;
     }
     grid.innerHTML = profiles.map(profileCard).join('');
@@ -16,7 +19,6 @@ async function loadFeatured() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadFeatured();
-
   const form = document.getElementById('hero-search-form');
   if (form) {
     form.addEventListener('submit', (e) => {

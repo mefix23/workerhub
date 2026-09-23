@@ -90,4 +90,25 @@ function unread(req, res, next) {
   }
 }
 
-module.exports = { list, openWith, getMessages, send, unread };
+
+function lobbyGet(req, res, next) {
+  try {
+    const afterId = Number(req.query.after) || 0;
+    const messages = Chat.lobbyList(80, afterId);
+    res.json({ messages });
+  } catch (err) {
+    next(err);
+  }
+}
+
+function lobbySend(req, res, next) {
+  try {
+    const message = Chat.lobbySend(req.user.id, req.body && req.body.body);
+    res.status(201).json({ message });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, openWith, getMessages, send, unread, lobbyGet, lobbySend };
+

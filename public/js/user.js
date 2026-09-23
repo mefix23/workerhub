@@ -112,8 +112,9 @@ async function loadUser() {
             data.is_self
               ? `<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
                    <a class="btn btn-primary btn-sm" href="/create.html">Создать анкету</a>
-                   <button class="btn btn-sm" id="btn-upload-work">Выложить видео</button>
-                   <a class="btn btn-sm" href="/feed.html">Лента ворков</a>
+                   <a class="btn btn-sm" href="/shop.html">Магазин</a>
+                   <a class="btn btn-sm" href="/support.html">Помощь</a>
+                   <a class="btn btn-sm" href="/lobby.html">Общий чат</a>
                  </div>`
               : `<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
                    <button class="btn btn-sm btn-primary" id="btn-chat-user" data-uid="${u.id}">Написать</button>
@@ -131,15 +132,6 @@ async function loadUser() {
       ${showWarns ? warnBlock({ ...data, user: u }) : ''}
 
       <div class="section-head" style="margin-top:32px;">
-        <div>
-          <h2>Видео</h2>
-          <p>${data.is_self ? 'Твои опубликованные ворки' : 'Ворки пользователя'}</p>
-        </div>
-        ${data.is_self ? '<button class="btn btn-sm" id="btn-upload-work-2">Выложить видео</button>' : ''}
-      </div>
-      <div class="works-grid" id="works-grid"><div class="loading">Загрузка…</div></div>
-
-      <div class="section-head" style="margin-top:32px;">
         <div><h2>${data.is_self ? 'Мои анкеты' : 'Анкеты'}</h2></div>
       </div>
       <div class="grid">${tiles}</div>
@@ -147,11 +139,11 @@ async function loadUser() {
       ${data.is_self ? '<div class="section-head" style="margin-top:32px;"><div><h2>Избранное</h2><p>Чужие анкеты, которые ты хочешь купить</p></div></div><div class="grid" id="favorites-grid"><div class="loading">Загрузка…</div></div>' : ''}
     `;
 
-    loadWorks(u.id, data.is_self);
+    
     if (data.is_self) {
       loadFavorites();
       loadNotifications();
-      setupUploadModal();
+      
     }
     const chatBtn = document.getElementById('btn-chat-user');
     if (chatBtn) {
@@ -310,7 +302,7 @@ async function loadNotifications() {
       <div class="notif-item${n.is_read ? '' : ' unread'}">
         ${escapeHtml(n.body)}
         <div class="text-muted" style="font-size:12px;margin-top:2px;">${escapeHtml(String(n.created_at).slice(0, 16))}
-          ${n.work_id ? ` · <a href="/feed.html#${n.work_id}">смотреть</a>` : ''}
+          ${n.work_id ? ` · <a href="/user.html">смотреть</a>` : ''}
         </div>
       </div>`
       )
