@@ -8,104 +8,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<style>
-  .pf-card {
-    max-width: var(--max-width);
-    margin: 24px auto 48px;
-    padding: 28px 28px 32px;
-    border-radius: 28px;
-    border: 1px solid var(--border-strong);
-    background: var(--bg-card);
-    box-shadow: var(--shadow-md);
-  }
-  .pf-top { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; justify-content: space-between; }
-  .pf-top-left { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
-  .pf-avatar-frame {
-    width: 96px; height: 96px; border-radius: 20px; border: 2px solid var(--border-strong);
-    display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
-  }
-  .pf-avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
-  .pf-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .pf-name-row h1 { margin: 0; }
-  .pf-rating { color: #fbbf24; font-weight: 700; font-size: 15px; margin-top: 6px; }
-  .pf-icon-btn {
-    width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-strong);
-    background: var(--bg-elevated); display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 17px; color: var(--text-secondary); flex-shrink: 0;
-  }
-  .pf-icon-btn.active { color: #f472b6; border-color: rgba(244, 114, 182, 0.5); background: rgba(244, 114, 182, 0.12); }
-  .pf-tierbar-wrap { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-elevated); max-width: 320px; }
-  .pf-tierbar-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
-  .pf-tierbar { display: flex; gap: 4px; }
-  .pf-tierbar span { height: 6px; flex: 1; border-radius: 3px; background: var(--border-strong); }
-  .pf-tierbar span.on { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-  .pf-tierbar-name { font-size: 13px; font-weight: 700; margin-top: 8px; }
-  .pf-actions { display: grid; gap: 10px; margin-top: 16px; }
-  .pf-actions .btn { width: 100%; }
-  /* keep the side padding of .container (the shorthand paddings in style.css drop it) */
-  .profile-header.container, .pf-layout.container { padding-left: 24px; padding-right: 24px; }
-  .pf-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
-    gap: 32px;
-    padding-top: 28px;
-    align-items: start;
-  }
-  .pf-gallery {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 20px;
-    align-items: start;
-  }
-  /* Only stretch a lone IMAGE to full width — never stretch video link cards */
-  .pf-gallery .pf-item.pf-img:only-child,
-  .pf-gallery .pf-item.pf-img:first-child:nth-last-child(odd) {
-    grid-column: 1 / -1;
-  }
-  .pf-item img {
-    width: 100%; height: auto; display: block;
-    border-radius: var(--radius-md); cursor: zoom-in;
-  }
-  .pf-embed {
-    position: relative; width: 100%; aspect-ratio: 16 / 9;
-    border-radius: var(--radius-md); overflow: hidden;
-    border: 1px solid var(--border-strong); background: #000;
-  }
-  .pf-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .pf-video {
-    display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
-    gap: 4px; min-height: 0; padding: 12px 14px;
-    text-align: left; font-weight: 600; font-size: 14px;
-    border: 1px solid var(--border-strong); border-radius: var(--radius-md);
-    background: var(--bg-elevated); transition: border-color 0.2s, background 0.2s;
-  }
-  .pf-video:hover { border-color: var(--accent); background: var(--bg-card-hover); }
-  .pf-video small {
-    font-weight: 400; font-size: 11px; color: var(--text-muted);
-    word-break: break-all; line-height: 1.3; max-height: 2.6em; overflow: hidden;
-  }
-  .pf-lightbox {
-    position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.88); cursor: zoom-out; padding: 16px;
-  }
-  .pf-lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
-  @media (max-width: 760px) {
-    .pf-layout { grid-template-columns: 1fr; }
-    .pf-right { order: -1; }
-    .pf-card { border-radius: 20px; padding: 20px 16px 24px; margin: 12px auto 32px; }
-  }
-</style>
 </head>
 <body>
 <div id="nav-root"></div>
 
 <div id="profile-root">
-  <div class="loading">Загрузка…</div>
+  <div class="container" style="padding-top:40px;">
+    <div class="skeleton" style="min-height:320px;border-radius:24px;"></div>
+  </div>
 </div>
 
 <footer class="footer">
-  <div class="container">WORKERHUB · MVP</div>
+  <div class="container">WORKERHUB</div>
 </footer>
 
 <script src="/js/api.js"></script>

@@ -1,6 +1,6 @@
 let lastId = 0;
 let me = null;
-let pollTimer = null;
+let stickToBottom = true;
 
 function fmtTime(iso) {
   if (!iso) return '';
@@ -15,6 +15,10 @@ function fmtTime(iso) {
   } catch (e) {
     return String(iso).slice(0, 16);
   }
+}
+
+function avLetter(name) {
+  return escapeHtml((name || '?').trim().slice(0, 1).toUpperCase());
 }
 
 function appendMessages(list, replace) {
@@ -40,13 +44,16 @@ function appendMessages(list, replace) {
     const el = document.createElement('div');
     el.className = 'lobby-msg' + (mine ? ' me' : '');
     el.innerHTML = `
-      ${mine ? '' : `<div class="lobby-msg-name"><a href="/user.html?id=${m.user_id}">${escapeHtml(m.author_name)}</a></div>`}
-      <div class="lobby-msg-body">${escapeHtml(m.body)}</div>
-      <div class="lobby-msg-time">${escapeHtml(fmtTime(m.created_at))}</div>
+      <div class="lobby-av">${avLetter(m.author_name)}</div>
+      <div class="lobby-bubble">
+        ${mine ? '' : `<div class="lobby-msg-name"><a href="/user.html?id=${m.user_id}">${escapeHtml(m.author_name)}</a></div>`}
+        <div class="lobby-msg-body">${escapeHtml(m.body)}</div>
+        <div class="lobby-msg-time">${escapeHtml(fmtTime(m.created_at))}</div>
+      </div>
     `;
     box.appendChild(el);
   });
-  box.scrollTop = box.scrollHeight;
+  if (stickToBottom) box.scrollTop = box.scrollHeight;
 }
 
 async function loadLobby(initial) {
@@ -79,6 +86,7 @@ async function sendLobby() {
       body: { body },
     });
     input.value = '';
+    stickToBottom = true;
     appendMessages([message], false);
   } catch (err) {
     if (typeof window.showToast === 'function') window.showToast(err.message, 'error');
@@ -92,6 +100,14 @@ async function sendLobby() {
 document.addEventListener('DOMContentLoaded', () => {
   me = getStoredUser();
   const compose = document.getElementById('lobby-compose');
+  const box = document.getElementById('lobby-msgs');
+
+  if (box) {
+    box.addEventListener('scroll', () => {
+      stickToBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+    });
+  }
+
   if (!getToken()) {
     compose.innerHTML =
       '<p class="text-muted" style="margin:0;width:100%;text-align:center;"><a href="/login.html">Войди</a>, чтобы писать в общий чат</p>';
@@ -105,5 +121,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   loadLobby(true);
-  pollTimer = setInterval(() => loadLobby(false), 3500);
+  setInterval(() => loadLobby(false), 3500);
 });

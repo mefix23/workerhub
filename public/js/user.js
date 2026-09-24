@@ -99,9 +99,9 @@ async function loadUser() {
         }</div>`;
 
     root.innerHTML = `
-      <div class="profile-header" style="padding-top:0;">
+      <div class="user-hero">
         <div class="avatar-lg">${initials(u.username)}</div>
-        <div>
+        <div style="flex:1;min-width:0;">
           <h1 class="profile-name">${escapeHtml(u.username)}</h1>
           <div class="tag-row">${badges}</div>
           <div class="text-muted" style="font-size:13px;margin-top:8px;">
@@ -110,13 +110,13 @@ async function loadUser() {
           </div>
           ${
             data.is_self
-              ? `<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+              ? `<div class="user-hero-actions">
                    <a class="btn btn-primary btn-sm" href="/create.html">Создать анкету</a>
                    <a class="btn btn-sm" href="/shop.html">Магазин</a>
                    <a class="btn btn-sm" href="/support.html">Помощь</a>
                    <a class="btn btn-sm" href="/lobby.html">Общий чат</a>
                  </div>`
-              : `<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+              : `<div class="user-hero-actions">
                    <button class="btn btn-sm btn-primary" id="btn-chat-user" data-uid="${u.id}">Написать</button>
                  </div>`
           }

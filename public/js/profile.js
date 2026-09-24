@@ -122,12 +122,14 @@ async function loadProfile() {
 
     root.innerHTML = `
       <div class="pf-card" style="${escapeHtml(skinCss)}${escapeHtml(frameCss)}">
+        <div class="pf-banner"></div>
+        <div class="pf-body-pad">
         <div class="pf-top">
           <div class="pf-top-left">
             <div class="pf-avatar-frame">${avatarContent}</div>
             <div>
               <div class="pf-name-row"><h1 class="profile-name" style="margin:0;">${escapeHtml(p.name)}</h1></div>
-              ${p.title ? `<div style="font-size:16px;font-weight:600;color:var(--text-secondary);margin:2px 0 8px;">${escapeHtml(p.title)}</div>` : ''}
+              ${p.title ? `<div style="font-size:15px;font-weight:500;color:var(--text-secondary);margin:4px 0 8px;">${escapeHtml(p.title)}</div>` : ''}
               <div class="tag-row">${roleTags}</div>
               ${
                 p.rating_count
@@ -180,7 +182,8 @@ async function loadProfile() {
           </div>
         </div>
 
-        <div id="reviews-root" style="padding-top:8px;"></div>
+        </div>
+        <div id="reviews-root"></div>
       </div>
     `;
 

@@ -8,24 +8,24 @@ function profileCard(p) {
     ? `<img src="${escapeHtml(p.avatar_url)}" alt="${escapeHtml(p.name)}" />`
     : initials(p.name);
 
+  const rating =
+    p.rating_count
+      ? `<span style="color:var(--warning);font-size:12.5px;font-weight:600;">★ ${p.rating_avg}</span>`
+      : '';
+
   return `
-    <a class="card" href="/profile.html?id=${p.id}" style="${escapeHtml((p.appearance && p.appearance.frame_css) || '')}">
+    <a class="card" href="/profile.html?id=${p.id}">
       <div class="card-top">
         <div class="avatar">${avatarContent}</div>
-        <div>
+        <div style="min-width:0;">
           <div class="card-name">${escapeHtml(p.name)}</div>
-          ${p.title ? `<div style="font-size:13.5px;font-weight:600;color:var(--text-secondary);margin:2px 0 6px;">${escapeHtml(p.title)}</div>` : ''}
-          <div class="tag-row">${roleBadges(p)}${p.tier_label ? `<span class="tag">Скилл: ${escapeHtml(p.tier_label)}</span>` : ''}</div>
+          <div class="tag-row" style="margin-top:6px;">${roleBadges(p)}</div>
         </div>
       </div>
-      <div class="card-desc">${escapeHtml(p.services_text || p.description || '')}</div>
+      <div class="card-desc">${escapeHtml(p.description)}</div>
       <div class="card-bottom">
-        <div class="price">${formatPrice(p.price_cents, p.currency)}${
-          p.rating_count
-            ? ` <span class="text-muted" style="font-size:13px;font-weight:500;">★ ${p.rating_avg} (${p.rating_count})</span>`
-            : ''
-        }</div>
-        <span class="btn btn-sm btn-ghost">Открыть →</span>
+        <div class="price">${formatPrice(p.price_cents, p.currency)}</div>
+        ${rating || '<span class="btn btn-sm btn-ghost">Открыть →</span>'}
       </div>
     </a>
   `;

@@ -2,6 +2,7 @@ let activeConvId = null;
 let lastMsgId = 0;
 let pollTimer = null;
 let me = null;
+let peerId = null;
 
 function fmtTime(iso) {
   if (!iso) return '';
@@ -18,19 +19,26 @@ function fmtTime(iso) {
   }
 }
 
+function avLetter(name) {
+  return escapeHtml((name || '?').trim().slice(0, 1).toUpperCase());
+}
+
 function renderShell() {
   const root = document.getElementById('chat-root');
   root.innerHTML = `
     <aside class="chat-list">
-      <div class="chat-list-head">Диалоги</div>
+      <div class="chat-list-head">Сообщения</div>
       <div class="chat-list-body" id="conv-list"></div>
     </aside>
     <section class="chat-pane">
-      <div class="chat-pane-head" id="pane-head">Выбери диалог</div>
+      <div class="chat-pane-head" id="pane-head">
+        <span id="pane-title">Выбери диалог</span>
+        <a id="pane-profile" class="btn btn-sm btn-ghost" style="display:none;">Профиль</a>
+      </div>
       <div class="chat-msgs" id="msg-list"></div>
       <div class="chat-compose" id="compose" style="display:none;">
-        <textarea id="msg-input" rows="1" maxlength="2000" placeholder="Напиши сообщение…"></textarea>
-        <button class="btn btn-primary" id="msg-send">Отправить</button>
+        <textarea id="msg-input" rows="1" maxlength="2000" placeholder="Написать сообщение…"></textarea>
+        <button class="btn btn-primary" id="msg-send">→</button>
       </div>
     </section>
   `;
@@ -63,11 +71,14 @@ async function loadConversations(selectId) {
       .map(
         (c) => `
       <div class="chat-row${Number(c.id) === Number(activeConvId) ? ' active' : ''}" data-id="${c.id}">
-        <div class="chat-row-name">
-          <span>${escapeHtml(c.peer_name)}</span>
-          ${c.unread ? `<span class="chat-badge">${c.unread}</span>` : ''}
+        <div class="chat-row-av">${avLetter(c.peer_name)}</div>
+        <div class="chat-row-body">
+          <div class="chat-row-name">
+            <span>${escapeHtml(c.peer_name)}</span>
+            ${c.unread ? `<span class="chat-badge">${c.unread}</span>` : ''}
+          </div>
+          <div class="chat-row-preview">${escapeHtml(c.last_body || 'Нет сообщений')}</div>
         </div>
-        <div class="chat-row-preview">${escapeHtml(c.last_body || 'Нет сообщений')}</div>
       </div>`
       )
       .join('');
@@ -77,16 +88,18 @@ async function loadConversations(selectId) {
     });
   }
 
-  if (selectId) {
-    openConversation(Number(selectId));
-  }
+  if (selectId) openConversation(Number(selectId));
 }
 
 async function openConversation(id) {
   activeConvId = id;
   lastMsgId = 0;
+  const shell = document.getElementById('chat-root');
+  if (shell) shell.classList.add('chat-open');
+
   const list = document.getElementById('msg-list');
-  const head = document.getElementById('pane-head');
+  const title = document.getElementById('pane-title');
+  const profileLink = document.getElementById('pane-profile');
   const compose = document.getElementById('compose');
 
   document.querySelectorAll('.chat-row').forEach((r) => {
@@ -96,12 +109,16 @@ async function openConversation(id) {
   list.innerHTML = `<div class="chat-empty">Загрузка…</div>`;
   try {
     const data = await api(`/chat/${id}`, { auth: true });
-    head.textContent = data.conversation.peer_name;
+    title.textContent = data.conversation.peer_name;
+    peerId = data.conversation.peer_id;
+    if (profileLink && peerId) {
+      profileLink.style.display = '';
+      profileLink.href = `/user.html?id=${peerId}`;
+    }
     compose.style.display = 'flex';
     list.innerHTML = '';
     appendMessages(data.messages);
     list.scrollTop = list.scrollHeight;
-    // refresh unread badges
     loadConversations();
   } catch (err) {
     list.innerHTML = `<div class="chat-empty">${escapeHtml(err.message)}</div>`;
@@ -163,14 +180,13 @@ async function pollNew() {
   try {
     const data = await api(`/chat/${activeConvId}?after=${lastMsgId}`, { auth: true });
     if (data.messages && data.messages.length) {
-      appendMessages(data.messages);
       const list = document.getElementById('msg-list');
-      list.scrollTop = list.scrollHeight;
+      const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+      appendMessages(data.messages);
+      if (nearBottom) list.scrollTop = list.scrollHeight;
       loadConversations();
     }
-  } catch (err) {
-    /* ignore transient poll errors */
-  }
+  } catch (err) {}
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -183,11 +199,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   renderShell();
   const params = new URLSearchParams(window.location.search);
-  const openId = params.get('id');
-  await loadConversations(openId || null);
-
+  await loadConversations(params.get('id') || null);
   pollTimer = setInterval(pollNew, 4000);
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') pollNew();
-  });
 });
