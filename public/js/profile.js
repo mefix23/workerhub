@@ -124,7 +124,7 @@ async function loadProfile() {
       <div class="pf-card" style="${escapeHtml(skinCss)}${escapeHtml(frameCss)}">
         <div class="pf-banner"></div>
         <div class="pf-body-pad">
-        <div class="pf-top">
+        <div class="pf-top glow-strip">
           <div class="pf-top-left">
             <div class="pf-avatar-frame">${avatarContent}</div>
             <div>

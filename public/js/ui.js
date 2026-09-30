@@ -81,6 +81,35 @@
     }, 30);
   });
 
+  // Soft fade transition between pages, so internal navigation doesn't feel
+  // like an abrupt jump. Only intercepts plain left-clicks on same-tab,
+  // same-origin links — everything else (new tab, downloads, anchors,
+  // external links) behaves exactly as normal.
+  function initPageTransition() {
+    if (prefersReduced) return;
+
+    document.addEventListener('click', (e) => {
+      if (e.defaultPrevented || e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+      const link = e.target.closest('a[href]');
+      if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      // Same-page anchors (#foo) and links to the current page shouldn't fade.
+      if (url.pathname === window.location.pathname && url.hash) return;
+
+      e.preventDefault();
+      document.body.classList.add('page-leaving');
+      setTimeout(() => {
+        window.location.href = link.href;
+      }, 150);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initPageTransition);
+
   // Re-run progress animation after dynamic content
   window.animateProgress = initProgressBars;
 })();

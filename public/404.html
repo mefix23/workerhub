@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Страница не найдена — WORKERHUB</title>
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  .nf-hero { padding: 80px 0; min-height: 60vh; display: flex; align-items: center; }
+  .nf-num {
+    font-size: clamp(96px, 20vw, 200px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin: 0 0 8px;
+    background: linear-gradient(160deg, #fff 0%, #aebdea 55%, #4a5b99 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 60px rgba(110, 150, 255, 0.35);
+    animation: nfFlicker 6s ease-in-out infinite;
+  }
+  @keyframes nfFlicker {
+    0%, 92%, 100% { opacity: 1; filter: none; }
+    93% { opacity: 0.7; filter: blur(0.5px); }
+    94% { opacity: 1; filter: none; }
+    96% { opacity: 0.85; filter: blur(0.3px); }
+  }
+  .nf-lead { max-width: 46ch; font-size: 16px; color: var(--text-secondary); margin: 0 0 28px; }
+</style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<section class="hero hero-animate nf-hero">
+  <div class="hero-bg">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+  </div>
+  <div class="container">
+    <p class="hero-kicker">Ошибка 404</p>
+    <div class="nf-num">404</div>
+    <p class="nf-lead" style="max-width:46ch;">Такой страницы нет — возможно, анкету удалили или ссылка устарела.</p>
+    <div class="hero-actions">
+      <a href="/" class="btn btn-primary">На главную</a>
+      <a href="/catalog.html" class="btn">Открыть каталог</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">WORKERHUB · MVP · <a href="/faq.html">FAQ</a> · <a href="/support.html">Поддержка</a></div>
+</footer>
+
+<script src="/js/api.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/ui.js"></script>
+</body>
+</html>

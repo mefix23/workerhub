@@ -12,7 +12,11 @@
 <body>
 <div id="nav-root"></div>
 
-<section class="section">
+<section class="hero hero-animate hero--compact">
+  <div class="hero-bg">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+  </div>
   <div class="container">
     <div class="section-head">
       <div>
@@ -20,11 +24,14 @@
         <p>Ищи по имени, профессии, описанию или тегам</p>
       </div>
     </div>
-
     <div class="search-bar">
       <input type="text" id="catalog-search-input" placeholder="Найти креатора…" />
     </div>
+  </div>
+</section>
 
+<section class="section" style="padding-top:20px;">
+  <div class="container">
     <div class="role-checkboxes" id="role-filter" style="margin-bottom:24px;"></div>
 
     <div class="grid" id="catalog-grid">

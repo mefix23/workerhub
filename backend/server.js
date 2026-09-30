@@ -76,7 +76,9 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  // Every real page on the site is its own .html file served above already;
+  // anything reaching here is a genuinely unknown path.
+  res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html'));
 });
 
 app.use('/api', notFound);
